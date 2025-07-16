@@ -29,13 +29,13 @@ export class Preloader extends Scene
 
     preload ()
     {
-        //  Load the assets for the game - Replace with your own assets
+        //  Load the assets for the Pikachu card matching game
         this.load.setPath('assets');
 
-        this.load.image('logo', 'logo.png');
-        this.load.image('star', 'star.png');
+        // Load background
+        this.load.image('background', 'bg.png');
 
-        // Load all card assets
+        // Load all card assets from cards subdirectory
         const cards = [
             '2S', '3S', '4S', '5S', '6S', '7S', '8S', '9S', '10S', 'JS', 'QS', 'KS', 'AS',
             '2C', '3C', '4C', '5C', '6C', '7C', '8C', '9C', '10C', 'JC', 'QC', 'KC', 'AC',
@@ -44,7 +44,7 @@ export class Preloader extends Scene
         ];
 
         cards.forEach(card => {
-            this.load.image(card, `${card}.png`);
+            this.load.image(card, `cards/${card}.png`);
         });
     }
 

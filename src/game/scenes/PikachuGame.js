@@ -7,10 +7,10 @@ export class PikachuGame extends Scene
     {
         super('PikachuGame');
         this.board = [];
-        this.boardWidth = 8;
-        this.boardHeight = 6;
-        this.cardWidth = 80;
-        this.cardHeight = 110;
+        this.boardWidth = 20;
+        this.boardHeight = 8;
+        this.cardWidth = 50;
+        this.cardHeight = 75;
         this.selectedCards = [];
         this.gameStarted = false;
     }
@@ -20,18 +20,19 @@ export class PikachuGame extends Scene
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0x2c3e50);
 
-        this.background = this.add.image(512, 384, 'background');
+        this.background = this.add.image(600, 450, 'background');
+        this.background.setDisplaySize(1200, 900);
         this.background.setAlpha(0.3);
 
         // Title
-        this.add.text(512, 50, 'Pikachu Card Matching Game', {
+        this.add.text(600, 50, 'Pikachu Card Matching Game', {
             fontFamily: 'Arial Black', fontSize: 32, color: '#ffffff',
             stroke: '#000000', strokeThickness: 4,
             align: 'center'
         }).setOrigin(0.5);
 
         // Instructions
-        this.add.text(512, 100, 'Match pairs of identical cards using I, L, U, or Z patterns', {
+        this.add.text(600, 100, 'Match pairs of identical cards using I, L, U, or Z patterns', {
             fontFamily: 'Arial', fontSize: 16, color: '#ecf0f1',
             align: 'center'
         }).setOrigin(0.5);
@@ -48,35 +49,35 @@ export class PikachuGame extends Scene
     createButtons()
     {
         // New Game button
-        const newGameBtn = this.add.rectangle(150, 700, 120, 40, 0x3498db)
+        const newGameBtn = this.add.rectangle(200, 820, 120, 40, 0x3498db)
             .setInteractive()
             .on('pointerdown', () => this.startNewGame())
             .on('pointerover', () => newGameBtn.setFillStyle(0x2980b9))
             .on('pointerout', () => newGameBtn.setFillStyle(0x3498db));
 
-        this.add.text(150, 700, 'New Game', {
+        this.add.text(200, 820, 'New Game', {
             fontFamily: 'Arial', fontSize: 16, color: '#ffffff'
         }).setOrigin(0.5);
 
         // Hint button
-        const hintBtn = this.add.rectangle(300, 700, 120, 40, 0xe74c3c)
+        const hintBtn = this.add.rectangle(400, 820, 120, 40, 0xe74c3c)
             .setInteractive()
             .on('pointerdown', () => this.showHint())
             .on('pointerover', () => hintBtn.setFillStyle(0xc0392b))
             .on('pointerout', () => hintBtn.setFillStyle(0xe74c3c));
 
-        this.add.text(300, 700, 'Hint', {
+        this.add.text(400, 820, 'Hint', {
             fontFamily: 'Arial', fontSize: 16, color: '#ffffff'
         }).setOrigin(0.5);
 
         // Back to Menu button
-        const backBtn = this.add.rectangle(850, 700, 120, 40, 0x95a5a6)
+        const backBtn = this.add.rectangle(1000, 820, 120, 40, 0x95a5a6)
             .setInteractive()
             .on('pointerdown', () => this.scene.start('MainMenu'))
             .on('pointerover', () => backBtn.setFillStyle(0x7f8c8d))
             .on('pointerout', () => backBtn.setFillStyle(0x95a5a6));
 
-        this.add.text(850, 700, 'Main Menu', {
+        this.add.text(1000, 820, 'Main Menu', {
             fontFamily: 'Arial', fontSize: 16, color: '#ffffff'
         }).setOrigin(0.5);
     }
@@ -93,14 +94,14 @@ export class PikachuGame extends Scene
 
         // Generate card pairs for the board
         const totalCells = this.boardWidth * this.boardHeight;
-        const cardTypes = ['2S', '3S', '4S', '5S', '6S', '7S', '8S', '9S', 
+        const cardTypes = ['2S', '3S', '4S', '5S', '6S', '7S', '8S', '9S',
                           '2C', '3C', '4C', '5C', '6C', '7C', '8C', '9C',
                           '2D', '3D', '4D', '5D', '6D', '7D', '8D', '9D'];
-        
+
         // Create pairs of cards
         const cards = [];
         const pairsNeeded = totalCells / 2;
-        
+
         for (let i = 0; i < pairsNeeded; i++) {
             const cardType = cardTypes[i % cardTypes.length];
             cards.push(cardType, cardType);
@@ -115,7 +116,7 @@ export class PikachuGame extends Scene
             for (let col = 0; col < this.boardWidth; col++) {
                 const cardIndex = row * this.boardWidth + col;
                 const cardType = cards[cardIndex];
-                
+
                 this.board[row][col] = {
                     type: cardType,
                     visible: true,
@@ -132,8 +133,8 @@ export class PikachuGame extends Scene
 
     renderBoard()
     {
-        const startX = 512 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2;
-        const startY = 300;
+        const startX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2;
+        const startY = 180;
 
         for (let row = 0; row < this.boardHeight; row++) {
             for (let col = 0; col < this.boardWidth; col++) {
@@ -204,13 +205,13 @@ export class PikachuGame extends Scene
     {
         // Check I-pattern (straight line)
         if (this.checkIPattern(start, end)) return true;
-        
+
         // Check L-pattern (one turn)
         if (this.checkLPattern(start, end)) return true;
-        
+
         // Check U-pattern (two turns with border)
         if (this.checkUPattern(start, end)) return true;
-        
+
         // Check Z-pattern (two turns)
         if (this.checkZPattern(start, end)) return true;
 
@@ -245,14 +246,14 @@ export class PikachuGame extends Scene
     checkLPattern(start, end)
     {
         // Try corner at start.row, end.col
-        if (this.isPathClear(start, {row: start.row, col: end.col}) && 
+        if (this.isPathClear(start, {row: start.row, col: end.col}) &&
             this.isPathClear({row: start.row, col: end.col}, end) &&
             !this.board[start.row][end.col].visible) {
             return true;
         }
 
         // Try corner at end.row, start.col
-        if (this.isPathClear(start, {row: end.row, col: start.col}) && 
+        if (this.isPathClear(start, {row: end.row, col: start.col}) &&
             this.isPathClear({row: end.row, col: start.col}, end) &&
             !this.board[end.row][start.col].visible) {
             return true;
@@ -263,9 +264,90 @@ export class PikachuGame extends Scene
 
     checkUPattern(start, end)
     {
-        // Check paths that go to the border and back
-        // This is a simplified implementation
+        // U-pattern: paths that extend to the border (outside the grid) and come back
+        // Check horizontal extensions (left and right borders)
+        
+        // Check if we can go left to border, then vertical, then right to end
+        if (this.checkUPatternHorizontal(start, end, 'left')) return true;
+        if (this.checkUPatternHorizontal(start, end, 'right')) return true;
+        
+        // Check if we can go up/down to border, then horizontal, then up/down to end
+        if (this.checkUPatternVertical(start, end, 'up')) return true;
+        if (this.checkUPatternVertical(start, end, 'down')) return true;
+        
         return false;
+    }
+
+    checkUPatternHorizontal(start, end, direction)
+    {
+        // Check if we can extend horizontally to border, then find a path
+        const isLeft = direction === 'left';
+        const borderCol = isLeft ? -1 : this.boardWidth;
+        
+        // Check if start row can extend to border
+        if (!this.canExtendHorizontally(start.row, start.col, borderCol)) return false;
+        
+        // Check if end row can extend to border  
+        if (!this.canExtendHorizontally(end.row, end.col, borderCol)) return false;
+        
+        // Check if we can move vertically along the border from start.row to end.row
+        return this.canMoveVerticallyAtBorder(start.row, end.row);
+    }
+
+    checkUPatternVertical(start, end, direction)
+    {
+        // Check if we can extend vertically to border, then find a path
+        const isUp = direction === 'up';
+        const borderRow = isUp ? -1 : this.boardHeight;
+        
+        // Check if start col can extend to border
+        if (!this.canExtendVertically(start.col, start.row, borderRow)) return false;
+        
+        // Check if end col can extend to border
+        if (!this.canExtendVertically(end.col, end.row, borderRow)) return false;
+        
+        // Check if we can move horizontally along the border from start.col to end.col
+        return this.canMoveHorizontallyAtBorder(start.col, end.col);
+    }
+
+    canExtendHorizontally(row, fromCol, toCol)
+    {
+        // Check if we can move horizontally from fromCol to toCol in the given row
+        const minCol = Math.min(fromCol, toCol);
+        const maxCol = Math.max(fromCol, toCol);
+        
+        for (let col = minCol; col <= maxCol; col++) {
+            // Skip the starting position and border position
+            if (col === fromCol || col < 0 || col >= this.boardWidth) continue;
+            if (this.board[row][col].visible) return false;
+        }
+        return true;
+    }
+
+    canExtendVertically(col, fromRow, toRow)
+    {
+        // Check if we can move vertically from fromRow to toRow in the given column
+        const minRow = Math.min(fromRow, toRow);
+        const maxRow = Math.max(fromRow, toRow);
+        
+        for (let row = minRow; row <= maxRow; row++) {
+            // Skip the starting position and border position
+            if (row === fromRow || row < 0 || row >= this.boardHeight) continue;
+            if (this.board[row][col].visible) return false;
+        }
+        return true;
+    }
+
+    canMoveVerticallyAtBorder(fromRow, toRow)
+    {
+        // At the border (outside grid), we can always move freely
+        return true;
+    }
+
+    canMoveHorizontallyAtBorder(fromCol, toCol)
+    {
+        // At the border (outside grid), we can always move freely
+        return true;
     }
 
     checkZPattern(start, end)
@@ -274,7 +356,7 @@ export class PikachuGame extends Scene
         for (let row = 0; row < this.boardHeight; row++) {
             for (let col = 0; col < this.boardWidth; col++) {
                 if (this.board[row][col].visible) continue;
-                
+
                 const midPoint = {row, col};
                 if (this.isPathClear(start, midPoint) && this.isPathClear(midPoint, end)) {
                     return true;
@@ -287,7 +369,7 @@ export class PikachuGame extends Scene
     isPathClear(start, end)
     {
         if (start.row === end.row && start.col === end.col) return true;
-        
+
         // Horizontal path
         if (start.row === end.row) {
             const minCol = Math.min(start.col, end.col);
@@ -358,7 +440,7 @@ export class PikachuGame extends Scene
         if (remainingCards === 0) {
             this.gameStarted = false;
             this.time.delayedCall(1000, () => {
-                this.add.text(512, 400, 'Congratulations!\nYou completed the game!', {
+                this.add.text(600, 450, 'Congratulations!\nYou completed the game!', {
                     fontFamily: 'Arial Black', fontSize: 32, color: '#f1c40f',
                     stroke: '#000000', strokeThickness: 4,
                     align: 'center'
@@ -379,22 +461,26 @@ export class PikachuGame extends Scene
         for (let row1 = 0; row1 < this.boardHeight; row1++) {
             for (let col1 = 0; col1 < this.boardWidth; col1++) {
                 if (!this.board[row1][col1].visible) continue;
-                
+
                 for (let row2 = 0; row2 < this.boardHeight; row2++) {
                     for (let col2 = 0; col2 < this.boardWidth; col2++) {
                         if (!this.board[row2][col2].visible) continue;
                         if (row1 === row2 && col1 === col2) continue;
-                        
+
                         if (this.board[row1][col1].type === this.board[row2][col2].type &&
                             this.hasValidPath({row: row1, col: col1}, {row: row2, col: col2})) {
-                            
+
                             // Highlight the hint pair
                             this.board[row1][col1].sprite.setTint(0xffff00);
                             this.board[row2][col2].sprite.setTint(0xffff00);
-                            
+
                             this.time.delayedCall(2000, () => {
-                                this.board[row1][col1].sprite.clearTint();
-                                this.board[row2][col2].sprite.clearTint();
+                                if (this.board[row1][col1].sprite) {
+                                    this.board[row1][col1].sprite.clearTint();
+                                }
+                                if (this.board[row2][col2].sprite) {
+                                    this.board[row2][col2].sprite.clearTint();
+                                }
                             });
                             return;
                         }

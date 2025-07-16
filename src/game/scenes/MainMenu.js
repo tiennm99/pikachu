@@ -1,5 +1,4 @@
-import { GameObjects, Scene } from 'phaser';
-
+import { Scene } from 'phaser';
 import { EventBus } from '../EventBus';
 
 export class MainMenu extends Scene
@@ -11,85 +10,37 @@ export class MainMenu extends Scene
 
     create ()
     {
-        this.background = this.add.image(512, 384, 'background');
+        this.camera = this.cameras.main;
+        this.camera.setBackgroundColor(0x2c3e50);
 
-        this.logo = this.add.image(512, 300, 'logo').setDepth(100);
+        this.background = this.add.image(600, 450, 'background');
+        this.background.setDisplaySize(1200, 900);
+        this.background.setAlpha(0.3);
 
-        this.title = this.add.text(512, 380, 'Main Menu', {
-            fontFamily: 'Arial Black', fontSize: 38, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 8,
+        // Title
+        this.add.text(600, 300, 'Pikachu Card Matching', {
+            fontFamily: 'Arial Black', fontSize: 48, color: '#f39c12',
+            stroke: '#000000', strokeThickness: 6,
             align: 'center'
-        }).setOrigin(0.5).setDepth(100);
+        }).setOrigin(0.5);
 
-        // Add Pikachu Game button
-        const pikachuBtn = this.add.rectangle(512, 480, 200, 50, 0x3498db)
+        this.add.text(600, 360, 'Find matching pairs using I, L, U, or Z patterns', {
+            fontFamily: 'Arial', fontSize: 18, color: '#ecf0f1',
+            align: 'center'
+        }).setOrigin(0.5);
+
+        // Play Game button
+        const playBtn = this.add.rectangle(600, 450, 250, 60, 0x27ae60)
             .setInteractive()
             .on('pointerdown', () => this.scene.start('PikachuGame'))
-            .on('pointerover', () => pikachuBtn.setFillStyle(0x2980b9))
-            .on('pointerout', () => pikachuBtn.setFillStyle(0x3498db));
+            .on('pointerover', () => playBtn.setFillStyle(0x229954))
+            .on('pointerout', () => playBtn.setFillStyle(0x27ae60));
 
-        this.add.text(512, 480, 'Play Pikachu Game', {
-            fontFamily: 'Arial Black', fontSize: 18, color: '#ffffff',
+        this.add.text(600, 450, 'Start Game', {
+            fontFamily: 'Arial Black', fontSize: 24, color: '#ffffff',
             align: 'center'
-        }).setOrigin(0.5).setDepth(100);
-
-        // Add Demo Game button
-        const demoBtn = this.add.rectangle(512, 550, 200, 50, 0xe74c3c)
-            .setInteractive()
-            .on('pointerdown', () => this.changeScene())
-            .on('pointerover', () => demoBtn.setFillStyle(0xc0392b))
-            .on('pointerout', () => demoBtn.setFillStyle(0xe74c3c));
-
-        this.add.text(512, 550, 'Demo Game', {
-            fontFamily: 'Arial Black', fontSize: 18, color: '#ffffff',
-            align: 'center'
-        }).setOrigin(0.5).setDepth(100);
+        }).setOrigin(0.5);
 
         EventBus.emit('current-scene-ready', this);
-    }
-    
-    changeScene ()
-    {
-        if (this.logoTween)
-        {
-            this.logoTween.stop();
-            this.logoTween = null;
-        }
-
-        this.scene.start('Game');
-    }
-
-    moveLogo (reactCallback)
-    {
-        if (this.logoTween)
-        {
-            if (this.logoTween.isPlaying())
-            {
-                this.logoTween.pause();
-            }
-            else
-            {
-                this.logoTween.play();
-            }
-        } 
-        else
-        {
-            this.logoTween = this.tweens.add({
-                targets: this.logo,
-                x: { value: 750, duration: 3000, ease: 'Back.easeInOut' },
-                y: { value: 80, duration: 1500, ease: 'Sine.easeOut' },
-                yoyo: true,
-                repeat: -1,
-                onUpdate: () => {
-                    if (reactCallback)
-                    {
-                        reactCallback({
-                            x: Math.floor(this.logo.x),
-                            y: Math.floor(this.logo.y)
-                        });
-                    }
-                }
-            });
-        }
     }
 }
