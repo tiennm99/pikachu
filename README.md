@@ -1,3 +1,8 @@
+## Credit
+
+Rule: https://www.scribd.com/document/718603193/Pikachu
+Assets: https://natomarcacini.itch.io/card-asset-pack
+
 # Phaser Next.js Template
 
 This is a Phaser 3 project template that uses the Next.js framework. It includes a bridge for React to Phaser game communication, hot-reloading for quick development workflow and scripts to generate production-ready builds.
@@ -121,7 +126,7 @@ const ReactComponent = () => {
     const phaserRef = useRef<IRefPhaserGame>(); // you can access to this ref from phaserRef.current
 
     const onCurrentActiveScene = (scene: Phaser.Scene) => {
-    
+
         // This is invoked
 
     }
