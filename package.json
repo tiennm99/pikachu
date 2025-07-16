@@ -19,7 +19,7 @@
         "next",
         "nextjs",
         "vite",
-        "typescript"
+        "javascript"
     ],
     "scripts": {
         "dev": "node log.js dev & next dev -p 8080",
@@ -33,10 +33,5 @@
         "react": "19.0.0",
         "react-dom": "19.0.0"
     },
-    "devDependencies": {
-        "@types/node": "^20",
-        "@types/react": "^19",
-        "@types/react-dom": "^19",
-        "typescript": "^5"
-    }
+    "devDependencies": {}
 }

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { IRefPhaserGame, PhaserGame } from './PhaserGame';
+import { PhaserGame } from './PhaserGame';
 import { MainMenu } from './game/scenes/MainMenu';
 
 function App()
@@ -8,14 +8,14 @@ function App()
     const [canMoveSprite, setCanMoveSprite] = useState(true);
 
     //  References to the PhaserGame component (game and scene are exposed)
-    const phaserRef = useRef<IRefPhaserGame | null>(null);
+    const phaserRef = useRef(null);
     const [spritePosition, setSpritePosition] = useState({ x: 0, y: 0 });
 
     const changeScene = () => {
 
         if(phaserRef.current)
         {     
-            const scene = phaserRef.current.scene as MainMenu;
+            const scene = phaserRef.current.scene;
             
             if (scene)
             {
@@ -29,7 +29,7 @@ function App()
         if(phaserRef.current)
         {
 
-            const scene = phaserRef.current.scene as MainMenu;
+            const scene = phaserRef.current.scene;
 
             if (scene && scene.scene.key === 'MainMenu')
             {
@@ -74,7 +74,7 @@ function App()
     }
 
     // Event emitted from the PhaserGame component
-    const currentScene = (scene: Phaser.Scene) => {
+    const currentScene = (scene) => {
 
         setCanMoveSprite(scene.scene.key !== 'MainMenu');
         
