@@ -9,6 +9,9 @@ export class PikachuGame extends Scene
         this.board = [];
         this.boardWidth = 20;
         this.boardHeight = 8;
+        // Add border padding - actual matrix is bigger
+        this.matrixWidth = this.boardWidth + 2;
+        this.matrixHeight = this.boardHeight + 2;
         this.cardWidth = 50;
         this.cardHeight = 75;
         this.selectedCards = [];
@@ -123,20 +126,34 @@ export class PikachuGame extends Scene
         // Shuffle the cards
         this.shuffleArray(cards);
 
-        // Create 2D board
-        for (let row = 0; row < this.boardHeight; row++) {
+        // Create 2D board with border padding
+        for (let row = 0; row < this.matrixHeight; row++) {
             this.board[row] = [];
-            for (let col = 0; col < this.boardWidth; col++) {
-                const cardIndex = row * this.boardWidth + col;
-                const cardType = cards[cardIndex];
+            for (let col = 0; col < this.matrixWidth; col++) {
+                // Border cells are always empty (0)
+                if (row === 0 || row === this.matrixHeight - 1 || col === 0 || col === this.matrixWidth - 1) {
+                    this.board[row][col] = {
+                        type: 0,
+                        visible: false,
+                        row: row,
+                        col: col,
+                        sprite: null
+                    };
+                } else {
+                    // Game board cells (1-indexed in matrix)
+                    const gameRow = row - 1;
+                    const gameCol = col - 1;
+                    const cardIndex = gameRow * this.boardWidth + gameCol;
+                    const cardType = cards[cardIndex];
 
-                this.board[row][col] = {
-                    type: cardType,
-                    visible: true,
-                    row: row,
-                    col: col,
-                    sprite: null
-                };
+                    this.board[row][col] = {
+                        type: cardType,
+                        visible: true,
+                        row: row,
+                        col: col,
+                        sprite: null
+                    };
+                }
             }
         }
 
@@ -149,12 +166,16 @@ export class PikachuGame extends Scene
         const startX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2;
         const startY = 180;
 
-        for (let row = 0; row < this.boardHeight; row++) {
-            for (let col = 0; col < this.boardWidth; col++) {
+        // Only render the actual game board (skip border)
+        for (let row = 1; row < this.matrixHeight - 1; row++) {
+            for (let col = 1; col < this.matrixWidth - 1; col++) {
                 const cell = this.board[row][col];
                 if (cell.visible) {
-                    const x = startX + col * this.cardWidth;
-                    const y = startY + row * this.cardHeight;
+                    // Convert matrix coordinates to visual coordinates
+                    const gameRow = row - 1;
+                    const gameCol = col - 1;
+                    const x = startX + gameCol * this.cardWidth;
+                    const y = startY + gameRow * this.cardHeight;
 
                     const cardSprite = this.add.image(x, y, cell.type)
                         .setDisplaySize(this.cardWidth - 5, this.cardHeight - 5)
@@ -293,19 +314,48 @@ export class PikachuGame extends Scene
         return false;
     }
 
+    checkLineX(y1, y2, x)
+    {
+        // Find point have column max and min
+        const min = Math.min(y1, y2);
+        const max = Math.max(y1, y2);
+        
+        // Run column
+        for (let y = min + 1; y < max; y++) {
+            if (this.board[x][y].type !== 0) { // if see barrier then die
+                return false;
+            }
+        }
+        // Not die -> success
+        return true;
+    }
+
+    checkLineY(x1, x2, y)
+    {
+        const min = Math.min(x1, x2);
+        const max = Math.max(x1, x2);
+        
+        for (let x = min + 1; x < max; x++) {
+            if (this.board[x][y].type !== 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     checkLPattern(start, end)
     {
         // Try corner at start.row, end.col
         if (this.isPathClear(start, {row: start.row, col: end.col}) &&
             this.isPathClear({row: start.row, col: end.col}, end) &&
-            !this.board[start.row][end.col].visible) {
+            this.board[start.row][end.col].type === 0) {
             return true;
         }
 
         // Try corner at end.row, start.col
         if (this.isPathClear(start, {row: end.row, col: start.col}) &&
             this.isPathClear({row: end.row, col: start.col}, end) &&
-            !this.board[end.row][start.col].visible) {
+            this.board[end.row][start.col].type === 0) {
             return true;
         }
 
@@ -314,98 +364,93 @@ export class PikachuGame extends Scene
 
     checkUPattern(start, end)
     {
-        // U-pattern: paths that extend to the border (outside the grid) and come back
-        // Check horizontal extensions (left and right borders)
-        
-        // Check if we can go left to border, then vertical, then right to end
-        if (this.checkUPatternHorizontal(start, end, 'left')) return true;
-        if (this.checkUPatternHorizontal(start, end, 'right')) return true;
-        
-        // Check if we can go up/down to border, then horizontal, then up/down to end
-        if (this.checkUPatternVertical(start, end, 'up')) return true;
-        if (this.checkUPatternVertical(start, end, 'down')) return true;
+        // Check more right
+        if (this.checkMoreLineX(start, end, 1)) return true;
+        // Check more left
+        if (this.checkMoreLineX(start, end, -1)) return true;
+        // Check more down
+        if (this.checkMoreLineY(start, end, 1)) return true;
+        // Check more up
+        if (this.checkMoreLineY(start, end, -1)) return true;
         
         return false;
     }
 
-    checkUPatternHorizontal(start, end, direction)
+    checkMoreLineX(start, end, type)
     {
-        // Check if we can extend horizontally to border, then find a path
-        const isLeft = direction === 'left';
-        const borderCol = isLeft ? -1 : this.boardWidth;
+        // Find point have y min
+        const pMinY = start.col < end.col ? start : end;
+        const pMaxY = start.col < end.col ? end : start;
         
-        // Check if start row can extend to border
-        if (!this.canExtendHorizontally(start.row, start.col, borderCol)) return false;
+        // Find line and y begin
+        let y = pMaxY.col + type;
+        let row = pMinY.row;
+        let colFinish = pMaxY.col;
         
-        // Check if end row can extend to border  
-        if (!this.canExtendHorizontally(end.row, end.col, borderCol)) return false;
-        
-        // Check if we can move vertically along the border from start.row to end.row
-        return this.canMoveVerticallyAtBorder(start.row, end.row);
-    }
-
-    checkUPatternVertical(start, end, direction)
-    {
-        // Check if we can extend vertically to border, then find a path
-        const isUp = direction === 'up';
-        const borderRow = isUp ? -1 : this.boardHeight;
-        
-        // Check if start col can extend to border
-        if (!this.canExtendVertically(start.col, start.row, borderRow)) return false;
-        
-        // Check if end col can extend to border
-        if (!this.canExtendVertically(end.col, end.row, borderRow)) return false;
-        
-        // Check if we can move horizontally along the border from start.col to end.col
-        return this.canMoveHorizontallyAtBorder(start.col, end.col);
-    }
-
-    canExtendHorizontally(row, fromCol, toCol)
-    {
-        // Check if we can move horizontally from fromCol to toCol in the given row
-        const minCol = Math.min(fromCol, toCol);
-        const maxCol = Math.max(fromCol, toCol);
-        
-        for (let col = minCol; col <= maxCol; col++) {
-            // Skip the starting position and border position
-            if (col === fromCol || col < 0 || col >= this.boardWidth) continue;
-            if (this.board[row][col].visible) return false;
+        if (type === -1) {
+            colFinish = pMinY.col;
+            y = pMinY.col + type;
+            row = pMaxY.row;
         }
-        return true;
-    }
 
-    canExtendVertically(col, fromRow, toRow)
-    {
-        // Check if we can move vertically from fromRow to toRow in the given column
-        const minRow = Math.min(fromRow, toRow);
-        const maxRow = Math.max(fromRow, toRow);
-        
-        for (let row = minRow; row <= maxRow; row++) {
-            // Skip the starting position and border position
-            if (row === fromRow || row < 0 || row >= this.boardHeight) continue;
-            if (this.board[row][col].visible) return false;
+        // Check if we can connect horizontally first
+        if ((this.board[row][colFinish].type === 0 || pMinY.col === pMaxY.col) &&
+            this.checkLineX(pMinY.col, pMaxY.col, row)) {
+            
+            // Check extension beyond border
+            while (y >= 0 && y < this.matrixWidth && 
+                   this.board[pMinY.row][y].type === 0 && 
+                   this.board[pMaxY.row][y].type === 0) {
+                
+                if (this.checkLineY(pMinY.row, pMaxY.row, y)) {
+                    return true;
+                }
+                y += type;
+            }
         }
-        return true;
+        return false;
     }
 
-    canMoveVerticallyAtBorder(fromRow, toRow)
+    checkMoreLineY(start, end, type)
     {
-        // At the border (outside grid), we can always move freely
-        return true;
-    }
+        // Find point have x min
+        const pMinX = start.row < end.row ? start : end;
+        const pMaxX = start.row < end.row ? end : start;
+        
+        let x = pMaxX.row + type;
+        let col = pMinX.col;
+        let rowFinish = pMaxX.row;
+        
+        if (type === -1) {
+            rowFinish = pMinX.row;
+            x = pMinX.row + type;
+            col = pMaxX.col;
+        }
 
-    canMoveHorizontallyAtBorder(fromCol, toCol)
-    {
-        // At the border (outside grid), we can always move freely
-        return true;
+        // Check if we can connect vertically first
+        if ((this.board[rowFinish][col].type === 0 || pMinX.row === pMaxX.row) &&
+            this.checkLineY(pMinX.row, pMaxX.row, col)) {
+            
+            // Check extension beyond border
+            while (x >= 0 && x < this.matrixHeight && 
+                   this.board[x][pMinX.col].type === 0 && 
+                   this.board[x][pMaxX.col].type === 0) {
+                
+                if (this.checkLineX(pMinX.col, pMaxX.col, x)) {
+                    return true;
+                }
+                x += type;
+            }
+        }
+        return false;
     }
 
     checkZPattern(start, end)
     {
-        // Check all possible two-turn paths
-        for (let row = 0; row < this.boardHeight; row++) {
-            for (let col = 0; col < this.boardWidth; col++) {
-                if (this.board[row][col].visible) continue;
+        // Check all possible two-turn paths within the matrix
+        for (let row = 0; row < this.matrixHeight; row++) {
+            for (let col = 0; col < this.matrixWidth; col++) {
+                if (this.board[row][col].type !== 0) continue;
 
                 const midPoint = {row, col};
                 if (this.isPathClear(start, midPoint) && this.isPathClear(midPoint, end)) {
@@ -425,7 +470,7 @@ export class PikachuGame extends Scene
             const minCol = Math.min(start.col, end.col);
             const maxCol = Math.max(start.col, end.col);
             for (let col = minCol + 1; col < maxCol; col++) {
-                if (this.board[start.row][col].visible) return false;
+                if (this.board[start.row][col].type !== 0) return false;
             }
             return true;
         }
@@ -435,7 +480,7 @@ export class PikachuGame extends Scene
             const minRow = Math.min(start.row, end.row);
             const maxRow = Math.max(start.row, end.row);
             for (let row = minRow + 1; row < maxRow; row++) {
-                if (this.board[row][start.col].visible) return false;
+                if (this.board[row][start.col].type !== 0) return false;
             }
             return true;
         }
@@ -493,10 +538,16 @@ export class PikachuGame extends Scene
     {
         this.clearDebugLines();
         
-        const startX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2 + start.col * this.cardWidth;
-        const startY = 180 + start.row * this.cardHeight;
-        const endX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2 + end.col * this.cardWidth;
-        const endY = 180 + end.row * this.cardHeight;
+        // Convert matrix coordinates to visual coordinates
+        const startGameCol = start.col - 1;
+        const startGameRow = start.row - 1;
+        const endGameCol = end.col - 1;
+        const endGameRow = end.row - 1;
+        
+        const startX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2 + startGameCol * this.cardWidth;
+        const startY = 180 + startGameRow * this.cardHeight;
+        const endX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2 + endGameCol * this.cardWidth;
+        const endY = 180 + endGameRow * this.cardHeight;
 
         const line = this.add.line(0, 0, startX, startY, endX, endY, color);
         line.setLineWidth(3);
@@ -509,17 +560,24 @@ export class PikachuGame extends Scene
         
         if (!path || path.length < 2) return;
 
-        const startX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2;
-        const startY = 180;
+        const baseX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2;
+        const baseY = 180;
 
         for (let i = 0; i < path.length - 1; i++) {
             const point1 = path[i];
             const point2 = path[i + 1];
             
-            const x1 = startX + point1.col * this.cardWidth;
-            const y1 = startY + point1.row * this.cardHeight;
-            const x2 = startX + point2.col * this.cardWidth;
-            const y2 = startY + point2.row * this.cardHeight;
+            // Convert matrix coordinates to visual coordinates
+            // Handle border points that might be outside the visible area
+            const gameCol1 = point1.col - 1;
+            const gameRow1 = point1.row - 1;
+            const gameCol2 = point2.col - 1;
+            const gameRow2 = point2.row - 1;
+            
+            const x1 = baseX + gameCol1 * this.cardWidth;
+            const y1 = baseY + gameRow1 * this.cardHeight;
+            const x2 = baseX + gameCol2 * this.cardWidth;
+            const y2 = baseY + gameRow2 * this.cardHeight;
 
             const line = this.add.line(0, 0, x1, y1, x2, y2, color);
             line.setLineWidth(3);
@@ -530,8 +588,9 @@ export class PikachuGame extends Scene
     checkGameComplete()
     {
         let remainingCards = 0;
-        for (let row = 0; row < this.boardHeight; row++) {
-            for (let col = 0; col < this.boardWidth; col++) {
+        // Only check the actual game board (skip border)
+        for (let row = 1; row < this.matrixHeight - 1; row++) {
+            for (let col = 1; col < this.matrixWidth - 1; col++) {
                 if (this.board[row][col].visible) remainingCards++;
             }
         }
@@ -568,13 +627,13 @@ export class PikachuGame extends Scene
 
     showHint()
     {
-        // Find a valid pair and highlight them
-        for (let row1 = 0; row1 < this.boardHeight; row1++) {
-            for (let col1 = 0; col1 < this.boardWidth; col1++) {
+        // Find a valid pair and highlight them (only check game board)
+        for (let row1 = 1; row1 < this.matrixHeight - 1; row1++) {
+            for (let col1 = 1; col1 < this.matrixWidth - 1; col1++) {
                 if (!this.board[row1][col1].visible) continue;
 
-                for (let row2 = 0; row2 < this.boardHeight; row2++) {
-                    for (let col2 = 0; col2 < this.boardWidth; col2++) {
+                for (let row2 = 1; row2 < this.matrixHeight - 1; row2++) {
+                    for (let col2 = 1; col2 < this.matrixWidth - 1; col2++) {
                         if (!this.board[row2][col2].visible) continue;
                         if (row1 === row2 && col1 === col2) continue;
 
@@ -608,7 +667,7 @@ export class PikachuGame extends Scene
             const minCol = Math.min(start.col, end.col);
             const maxCol = Math.max(start.col, end.col);
             for (let col = minCol + 1; col < maxCol; col++) {
-                if (this.board[start.row][col].visible) return null;
+                if (this.board[start.row][col].type !== 0) return null;
             }
             return [start, end];
         }
@@ -618,7 +677,7 @@ export class PikachuGame extends Scene
             const minRow = Math.min(start.row, end.row);
             const maxRow = Math.max(start.row, end.row);
             for (let row = minRow + 1; row < maxRow; row++) {
-                if (this.board[row][start.col].visible) return null;
+                if (this.board[row][start.col].type !== 0) return null;
             }
             return [start, end];
         }
@@ -632,7 +691,7 @@ export class PikachuGame extends Scene
         const corner1 = {row: start.row, col: end.col};
         if (this.isPathClear(start, corner1) &&
             this.isPathClear(corner1, end) &&
-            !this.board[start.row][end.col].visible) {
+            this.board[start.row][end.col].type === 0) {
             return [start, corner1, end];
         }
 
@@ -640,7 +699,7 @@ export class PikachuGame extends Scene
         const corner2 = {row: end.row, col: start.col};
         if (this.isPathClear(start, corner2) &&
             this.isPathClear(corner2, end) &&
-            !this.board[end.row][start.col].visible) {
+            this.board[end.row][start.col].type === 0) {
             return [start, corner2, end];
         }
 
@@ -649,71 +708,106 @@ export class PikachuGame extends Scene
 
     checkUPatternWithPath(start, end)
     {
-        // Check horizontal extensions (left and right borders)
-        let path = this.checkUPatternHorizontalWithPath(start, end, 'left');
+        // Check more right
+        let path = this.checkMoreLineXWithPath(start, end, 1);
         if (path) return path;
         
-        path = this.checkUPatternHorizontalWithPath(start, end, 'right');
+        // Check more left
+        path = this.checkMoreLineXWithPath(start, end, -1);
         if (path) return path;
         
-        // Check vertical extensions (up and down borders)
-        path = this.checkUPatternVerticalWithPath(start, end, 'up');
+        // Check more down
+        path = this.checkMoreLineYWithPath(start, end, 1);
         if (path) return path;
         
-        path = this.checkUPatternVerticalWithPath(start, end, 'down');
+        // Check more up
+        path = this.checkMoreLineYWithPath(start, end, -1);
         if (path) return path;
         
         return null;
     }
 
-    checkUPatternHorizontalWithPath(start, end, direction)
+    checkMoreLineXWithPath(start, end, type)
     {
-        const isLeft = direction === 'left';
-        const borderCol = isLeft ? -1 : this.boardWidth;
+        // Find point have y min
+        const pMinY = start.col < end.col ? start : end;
+        const pMaxY = start.col < end.col ? end : start;
         
-        // Check if start row can extend to border
-        if (!this.canExtendHorizontally(start.row, start.col, borderCol)) return null;
+        // Find line and y begin
+        let y = pMaxY.col + type;
+        let row = pMinY.row;
+        let colFinish = pMaxY.col;
         
-        // Check if end row can extend to border  
-        if (!this.canExtendHorizontally(end.row, end.col, borderCol)) return null;
-        
-        // Check if we can move vertically along the border
-        if (!this.canMoveVerticallyAtBorder(start.row, end.row)) return null;
-        
-        // Create path with border points
-        const borderPoint1 = {row: start.row, col: borderCol};
-        const borderPoint2 = {row: end.row, col: borderCol};
-        
-        return [start, borderPoint1, borderPoint2, end];
+        if (type === -1) {
+            colFinish = pMinY.col;
+            y = pMinY.col + type;
+            row = pMaxY.row;
+        }
+
+        // Check if we can connect horizontally first
+        if ((this.board[row][colFinish].type === 0 || pMinY.col === pMaxY.col) &&
+            this.checkLineX(pMinY.col, pMaxY.col, row)) {
+            
+            // Check extension beyond border
+            while (y >= 0 && y < this.matrixWidth && 
+                   this.board[pMinY.row][y].type === 0 && 
+                   this.board[pMaxY.row][y].type === 0) {
+                
+                if (this.checkLineY(pMinY.row, pMaxY.row, y)) {
+                    // Create path with the connecting point
+                    const connectPoint1 = {row: pMinY.row, col: y};
+                    const connectPoint2 = {row: pMaxY.row, col: y};
+                    return [pMinY, connectPoint1, connectPoint2, pMaxY];
+                }
+                y += type;
+            }
+        }
+        return null;
     }
 
-    checkUPatternVerticalWithPath(start, end, direction)
+    checkMoreLineYWithPath(start, end, type)
     {
-        const isUp = direction === 'up';
-        const borderRow = isUp ? -1 : this.boardHeight;
+        // Find point have x min
+        const pMinX = start.row < end.row ? start : end;
+        const pMaxX = start.row < end.row ? end : start;
         
-        // Check if start col can extend to border
-        if (!this.canExtendVertically(start.col, start.row, borderRow)) return null;
+        let x = pMaxX.row + type;
+        let col = pMinX.col;
+        let rowFinish = pMaxX.row;
         
-        // Check if end col can extend to border
-        if (!this.canExtendVertically(end.col, end.row, borderRow)) return null;
-        
-        // Check if we can move horizontally along the border
-        if (!this.canMoveHorizontallyAtBorder(start.col, end.col)) return null;
-        
-        // Create path with border points
-        const borderPoint1 = {row: borderRow, col: start.col};
-        const borderPoint2 = {row: borderRow, col: end.col};
-        
-        return [start, borderPoint1, borderPoint2, end];
+        if (type === -1) {
+            rowFinish = pMinX.row;
+            x = pMinX.row + type;
+            col = pMaxX.col;
+        }
+
+        // Check if we can connect vertically first
+        if ((this.board[rowFinish][col].type === 0 || pMinX.row === pMaxX.row) &&
+            this.checkLineY(pMinX.row, pMaxX.row, col)) {
+            
+            // Check extension beyond border
+            while (x >= 0 && x < this.matrixHeight && 
+                   this.board[x][pMinX.col].type === 0 && 
+                   this.board[x][pMaxX.col].type === 0) {
+                
+                if (this.checkLineX(pMinX.col, pMaxX.col, x)) {
+                    // Create path with the connecting point
+                    const connectPoint1 = {row: x, col: pMinX.col};
+                    const connectPoint2 = {row: x, col: pMaxX.col};
+                    return [pMinX, connectPoint1, connectPoint2, pMaxX];
+                }
+                x += type;
+            }
+        }
+        return null;
     }
 
     checkZPatternWithPath(start, end)
     {
-        // Check all possible two-turn paths
-        for (let row = 0; row < this.boardHeight; row++) {
-            for (let col = 0; col < this.boardWidth; col++) {
-                if (this.board[row][col].visible) continue;
+        // Check all possible two-turn paths within the matrix
+        for (let row = 0; row < this.matrixHeight; row++) {
+            for (let col = 0; col < this.matrixWidth; col++) {
+                if (this.board[row][col].type !== 0) continue;
 
                 const midPoint = {row, col};
                 if (this.isPathClear(start, midPoint) && this.isPathClear(midPoint, end)) {
