@@ -13,6 +13,8 @@ export class PikachuGame extends Scene
         this.cardHeight = 75;
         this.selectedCards = [];
         this.gameStarted = false;
+        this.debugLines = [];
+        this.debugMode = false;
     }
 
     create ()
@@ -67,6 +69,17 @@ export class PikachuGame extends Scene
             .on('pointerout', () => hintBtn.setFillStyle(0xe74c3c));
 
         this.add.text(400, 820, 'Hint', {
+            fontFamily: 'Arial', fontSize: 16, color: '#ffffff'
+        }).setOrigin(0.5);
+
+        // Debug toggle button
+        this.debugBtn = this.add.rectangle(600, 820, 120, 40, 0x9b59b6)
+            .setInteractive()
+            .on('pointerdown', () => this.toggleDebugMode())
+            .on('pointerover', () => this.debugBtn.setFillStyle(0x8e44ad))
+            .on('pointerout', () => this.debugBtn.setFillStyle(0x9b59b6));
+
+        this.debugText = this.add.text(600, 820, 'Debug: OFF', {
             fontFamily: 'Arial', fontSize: 16, color: '#ffffff'
         }).setOrigin(0.5);
 
@@ -187,17 +200,33 @@ export class PikachuGame extends Scene
         // Check if cards are of the same type
         if (firstCell.type === secondCell.type) {
             // Check if there's a valid path between them
-            if (this.hasValidPath(first, second)) {
-                // Valid match - remove cards
-                this.removeCards(first, second);
-                this.checkGameComplete();
+            const pathResult = this.hasValidPathWithDebug(first, second);
+            if (pathResult.valid) {
+                // Valid match - show green line and remove cards
+                if (this.debugMode) {
+                    this.drawDebugPath(pathResult.path, 0x00ff00);
+                }
+                this.time.delayedCall(this.debugMode ? 1000 : 0, () => {
+                    this.removeCards(first, second);
+                    this.checkGameComplete();
+                });
             } else {
-                // Invalid path - clear selection
-                this.clearSelection();
+                // Invalid path - show red line and clear selection
+                if (this.debugMode) {
+                    this.drawDebugLine(first, second, 0xff0000);
+                }
+                this.time.delayedCall(this.debugMode ? 1000 : 0, () => {
+                    this.clearSelection();
+                });
             }
         } else {
-            // Different cards - clear selection
-            this.clearSelection();
+            // Different cards - show red line and clear selection
+            if (this.debugMode) {
+                this.drawDebugLine(first, second, 0xff0000);
+            }
+            this.time.delayedCall(this.debugMode ? 1000 : 0, () => {
+                this.clearSelection();
+            });
         }
     }
 
@@ -216,6 +245,27 @@ export class PikachuGame extends Scene
         if (this.checkZPattern(start, end)) return true;
 
         return false;
+    }
+
+    hasValidPathWithDebug(start, end)
+    {
+        // Check I-pattern (straight line)
+        const iPath = this.checkIPatternWithPath(start, end);
+        if (iPath) return { valid: true, path: iPath };
+
+        // Check L-pattern (one turn)
+        const lPath = this.checkLPatternWithPath(start, end);
+        if (lPath) return { valid: true, path: lPath };
+
+        // Check U-pattern (two turns with border)
+        const uPath = this.checkUPatternWithPath(start, end);
+        if (uPath) return { valid: true, path: uPath };
+
+        // Check Z-pattern (two turns)
+        const zPath = this.checkZPatternWithPath(start, end);
+        if (zPath) return { valid: true, path: zPath };
+
+        return { valid: false, path: null };
     }
 
     checkIPattern(start, end)
@@ -426,6 +476,55 @@ export class PikachuGame extends Scene
             }
         });
         this.selectedCards = [];
+        this.clearDebugLines();
+    }
+
+    clearDebugLines()
+    {
+        this.debugLines.forEach(line => {
+            if (line && line.destroy) {
+                line.destroy();
+            }
+        });
+        this.debugLines = [];
+    }
+
+    drawDebugLine(start, end, color)
+    {
+        this.clearDebugLines();
+        
+        const startX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2 + start.col * this.cardWidth;
+        const startY = 180 + start.row * this.cardHeight;
+        const endX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2 + end.col * this.cardWidth;
+        const endY = 180 + end.row * this.cardHeight;
+
+        const line = this.add.line(0, 0, startX, startY, endX, endY, color);
+        line.setLineWidth(3);
+        this.debugLines.push(line);
+    }
+
+    drawDebugPath(path, color)
+    {
+        this.clearDebugLines();
+        
+        if (!path || path.length < 2) return;
+
+        const startX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2;
+        const startY = 180;
+
+        for (let i = 0; i < path.length - 1; i++) {
+            const point1 = path[i];
+            const point2 = path[i + 1];
+            
+            const x1 = startX + point1.col * this.cardWidth;
+            const y1 = startY + point1.row * this.cardHeight;
+            const x2 = startX + point2.col * this.cardWidth;
+            const y2 = startY + point2.row * this.cardHeight;
+
+            const line = this.add.line(0, 0, x1, y1, x2, y2, color);
+            line.setLineWidth(3);
+            this.debugLines.push(line);
+        }
     }
 
     checkGameComplete()
@@ -453,6 +552,18 @@ export class PikachuGame extends Scene
     {
         this.selectedCards = [];
         this.initializeBoard();
+    }
+
+    toggleDebugMode()
+    {
+        this.debugMode = !this.debugMode;
+        this.debugText.setText(this.debugMode ? 'Debug: ON' : 'Debug: OFF');
+        this.debugBtn.setFillStyle(this.debugMode ? 0x27ae60 : 0x9b59b6);
+        
+        // Clear any existing debug lines when toggling off
+        if (!this.debugMode) {
+            this.clearDebugLines();
+        }
     }
 
     showHint()
@@ -488,6 +599,129 @@ export class PikachuGame extends Scene
                 }
             }
         }
+    }
+
+    checkIPatternWithPath(start, end)
+    {
+        // Horizontal line
+        if (start.row === end.row) {
+            const minCol = Math.min(start.col, end.col);
+            const maxCol = Math.max(start.col, end.col);
+            for (let col = minCol + 1; col < maxCol; col++) {
+                if (this.board[start.row][col].visible) return null;
+            }
+            return [start, end];
+        }
+
+        // Vertical line
+        if (start.col === end.col) {
+            const minRow = Math.min(start.row, end.row);
+            const maxRow = Math.max(start.row, end.row);
+            for (let row = minRow + 1; row < maxRow; row++) {
+                if (this.board[row][start.col].visible) return null;
+            }
+            return [start, end];
+        }
+
+        return null;
+    }
+
+    checkLPatternWithPath(start, end)
+    {
+        // Try corner at start.row, end.col
+        const corner1 = {row: start.row, col: end.col};
+        if (this.isPathClear(start, corner1) &&
+            this.isPathClear(corner1, end) &&
+            !this.board[start.row][end.col].visible) {
+            return [start, corner1, end];
+        }
+
+        // Try corner at end.row, start.col
+        const corner2 = {row: end.row, col: start.col};
+        if (this.isPathClear(start, corner2) &&
+            this.isPathClear(corner2, end) &&
+            !this.board[end.row][start.col].visible) {
+            return [start, corner2, end];
+        }
+
+        return null;
+    }
+
+    checkUPatternWithPath(start, end)
+    {
+        // Check horizontal extensions (left and right borders)
+        let path = this.checkUPatternHorizontalWithPath(start, end, 'left');
+        if (path) return path;
+        
+        path = this.checkUPatternHorizontalWithPath(start, end, 'right');
+        if (path) return path;
+        
+        // Check vertical extensions (up and down borders)
+        path = this.checkUPatternVerticalWithPath(start, end, 'up');
+        if (path) return path;
+        
+        path = this.checkUPatternVerticalWithPath(start, end, 'down');
+        if (path) return path;
+        
+        return null;
+    }
+
+    checkUPatternHorizontalWithPath(start, end, direction)
+    {
+        const isLeft = direction === 'left';
+        const borderCol = isLeft ? -1 : this.boardWidth;
+        
+        // Check if start row can extend to border
+        if (!this.canExtendHorizontally(start.row, start.col, borderCol)) return null;
+        
+        // Check if end row can extend to border  
+        if (!this.canExtendHorizontally(end.row, end.col, borderCol)) return null;
+        
+        // Check if we can move vertically along the border
+        if (!this.canMoveVerticallyAtBorder(start.row, end.row)) return null;
+        
+        // Create path with border points
+        const borderPoint1 = {row: start.row, col: borderCol};
+        const borderPoint2 = {row: end.row, col: borderCol};
+        
+        return [start, borderPoint1, borderPoint2, end];
+    }
+
+    checkUPatternVerticalWithPath(start, end, direction)
+    {
+        const isUp = direction === 'up';
+        const borderRow = isUp ? -1 : this.boardHeight;
+        
+        // Check if start col can extend to border
+        if (!this.canExtendVertically(start.col, start.row, borderRow)) return null;
+        
+        // Check if end col can extend to border
+        if (!this.canExtendVertically(end.col, end.row, borderRow)) return null;
+        
+        // Check if we can move horizontally along the border
+        if (!this.canMoveHorizontallyAtBorder(start.col, end.col)) return null;
+        
+        // Create path with border points
+        const borderPoint1 = {row: borderRow, col: start.col};
+        const borderPoint2 = {row: borderRow, col: end.col};
+        
+        return [start, borderPoint1, borderPoint2, end];
+    }
+
+    checkZPatternWithPath(start, end)
+    {
+        // Check all possible two-turn paths
+        for (let row = 0; row < this.boardHeight; row++) {
+            for (let col = 0; col < this.boardWidth; col++) {
+                if (this.board[row][col].visible) continue;
+
+                const midPoint = {row, col};
+                if (this.isPathClear(start, midPoint) && this.isPathClear(midPoint, end)) {
+                    return [start, midPoint, end];
+                }
+            }
+        }
+        return null;
     }
 
     shuffleArray(array)
