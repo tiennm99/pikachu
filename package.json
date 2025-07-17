@@ -37,7 +37,7 @@
         "test:silent": "jest --silent"
     },
     "dependencies": {
-        "next": "15.3.1",
+        "next": "15.3.3",
         "phaser": "^3.90.0",
         "react": "19.0.0",
         "react-dom": "19.0.0"
