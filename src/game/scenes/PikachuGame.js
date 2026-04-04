@@ -31,7 +31,7 @@ export class PikachuGame extends Scene
         this.matrixHeight = BOARD_HEIGHT + 2;
         this.selectedCards = [];
         this.gameStarted = false;
-        this.debugLines = [];
+        this.pathLines = [];
         this.debugMode = false;
         this.moves = 0;
         this.logic = new PikachuGameLogic(BOARD_WIDTH, BOARD_HEIGHT);
@@ -231,8 +231,9 @@ export class PikachuGame extends Scene
         if (firstCell.type === secondCell.type) {
             const pathResult = this.logic.findPath(first, second);
             if (pathResult.valid) {
-                if (this.debugMode) this.drawDebugPath(pathResult.path, 0x00ff00);
-                this.time.delayedCall(this.debugMode ? 800 : 0, () => {
+                // Always show green connection path, then remove
+                this.drawPath(pathResult.path, 0x00ff00);
+                this.time.delayedCall(400, () => {
                     this.removeCards(first, second);
                     this.checkGameComplete();
                 });
@@ -240,8 +241,8 @@ export class PikachuGame extends Scene
             }
         }
 
-        // Mismatch — red flash + shake
-        if (this.debugMode) this.drawDebugLine(first, second, 0xff0000);
+        // Mismatch — always show red line + shake
+        this.drawPath([first, second], 0xff4444);
         this.showMismatch(firstCell, secondCell);
     }
 
@@ -260,7 +261,7 @@ export class PikachuGame extends Scene
             });
         });
 
-        this.time.delayedCall(this.debugMode ? 800 : 400, () => this.clearSelection());
+        this.time.delayedCall(500, () => this.clearSelection());
     }
 
     removeCards(first, second)
@@ -305,13 +306,13 @@ export class PikachuGame extends Scene
             }
         });
         this.selectedCards = [];
-        this.clearDebugLines();
+        this.clearPathLines();
     }
 
-    clearDebugLines()
+    clearPathLines()
     {
-        this.debugLines.forEach(line => { if (line?.destroy) line.destroy(); });
-        this.debugLines = [];
+        this.pathLines.forEach(line => { if (line?.destroy) line.destroy(); });
+        this.pathLines = [];
     }
 
     matrixToScreen(row, col)
@@ -323,25 +324,22 @@ export class PikachuGame extends Scene
         };
     }
 
-    drawDebugLine(start, end, color)
+    /** Draw connecting path between points with color and fade-in animation */
+    drawPath(path, color)
     {
-        this.clearDebugLines();
-        const s = this.matrixToScreen(start.row, start.col);
-        const e = this.matrixToScreen(end.row, end.col);
-        const line = this.add.line(0, 0, s.x, s.y, e.x, e.y, color).setLineWidth(3).setDepth(5);
-        this.debugLines.push(line);
-    }
-
-    drawDebugPath(path, color)
-    {
-        this.clearDebugLines();
+        this.clearPathLines();
         if (!path || path.length < 2) return;
 
         for (let i = 0; i < path.length - 1; i++) {
             const p1 = this.matrixToScreen(path[i].row, path[i].col);
             const p2 = this.matrixToScreen(path[i + 1].row, path[i + 1].col);
-            const line = this.add.line(0, 0, p1.x, p1.y, p2.x, p2.y, color).setLineWidth(3).setDepth(5);
-            this.debugLines.push(line);
+            const line = this.add.line(0, 0, p1.x, p1.y, p2.x, p2.y, color)
+                .setLineWidth(3).setDepth(5).setAlpha(0);
+            this.tweens.add({
+                targets: line, alpha: 0.9,
+                duration: 150, delay: i * 50
+            });
+            this.pathLines.push(line);
         }
     }
 
@@ -411,7 +409,7 @@ export class PikachuGame extends Scene
         this.selectedCards = [];
         this.moves = 0;
         this.movesText.setText('Moves: 0');
-        this.clearDebugLines();
+        this.clearPathLines();
         this.initializeBoard();
     }
 
@@ -420,7 +418,7 @@ export class PikachuGame extends Scene
         this.debugMode = !this.debugMode;
         this.debugText.setText(this.debugMode ? 'Debug: ON' : 'Debug: OFF');
         this.debugBtn.setFillStyle(this.debugMode ? 0x27ae60 : 0x8e44ad);
-        if (!this.debugMode) this.clearDebugLines();
+        if (!this.debugMode) this.clearPathLines();
     }
 
     showHint()
