@@ -5,9 +5,9 @@ import { PikachuGameLogic } from '../logic/PikachuGameLogic';
 const BOARD_WIDTH = 20;
 const BOARD_HEIGHT = 8;
 const CARD_W = 50;
-const CARD_H = 75;
+const CARD_H = 50;
 const BOARD_X = 600;
-const BOARD_Y = 180;
+const BOARD_Y = 220;
 
 const CARD_BG = 0xfaf8ef;
 const CARD_BORDER = 0xd5ceb8;
@@ -156,7 +156,7 @@ export class PikachuGame extends Scene
                     .setStrokeStyle(1, CARD_BORDER);
 
                 const emoji = this.add.text(0, 0, cell.type, {
-                    fontSize: 28, align: 'center'
+                    fontSize: 32, align: 'center'
                 }).setOrigin(0.5);
 
                 const container = this.add.container(x, y, [bg, emoji]);
