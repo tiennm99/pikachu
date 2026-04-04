@@ -224,7 +224,7 @@ export class PikachuGame extends Scene
         // Check if cards are of the same type
         if (firstCell.type === secondCell.type) {
             // Check if there's a valid path between them
-            const pathResult = this.logic.hasValidPathWithDebug(first, second);
+            const pathResult = this.logic.findPath(first, second);
             if (pathResult.valid) {
                 // Valid match - show green line and remove cards
                 if (this.debugMode) {
@@ -434,10 +434,5 @@ export class PikachuGame extends Scene
             const j = Math.floor(Math.random() * (i + 1));
             [array[i], array[j]] = [array[j], array[i]];
         }
-    }
-
-    changeScene()
-    {
-        this.scene.start('MainMenu');
     }
 }

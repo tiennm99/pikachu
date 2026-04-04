@@ -1,37 +1,12 @@
 export default {
   transform: {},
-  
-  // Test environment
   testEnvironment: 'node',
-  
-  // Test file patterns
-  testMatch: [
-    '**/test/**/*.test.js',
-    '**/test/**/test-*.js'
-  ],
-  
-  // Coverage settings
-  collectCoverageFrom: [
-    'src/game/logic/**/*.js',
-    '!src/game/logic/**/*.test.js'
-  ],
-  
-  // Coverage thresholds
+  testMatch: ['**/test/**/*.test.js'],
+  collectCoverageFrom: ['src/game/logic/**/*.js'],
   coverageThreshold: {
-    global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80
-    }
+    global: { branches: 80, functions: 80, lines: 80, statements: 80 }
   },
-  
-  // Verbose output
   verbose: true,
-  
-  // Module file extensions
   moduleFileExtensions: ['js', 'json'],
-  
-  // Setup files
   setupFilesAfterEnv: ['<rootDir>/test/setup.js']
 };
