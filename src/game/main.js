@@ -21,9 +21,16 @@ const config = {
 };
 
 const StartGame = (parent) => {
+    const params = new URLSearchParams(window.location.search);
+    const skipMenu = params.get('scene') === 'game';
 
-    return new Game({ ...config, parent });
+    const gameConfig = { ...config, parent };
+    if (skipMenu) {
+        // Skip Boot/Menu, go directly to game (useful for debugging)
+        gameConfig.scene = [Boot, Preloader, PikachuGame];
+    }
 
+    return new Game(gameConfig);
 }
 
 export default StartGame;

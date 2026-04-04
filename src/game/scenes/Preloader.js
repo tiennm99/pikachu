@@ -32,6 +32,8 @@ export class Preloader extends Scene
 
     create ()
     {
-        this.scene.start('MainMenu');
+        const params = new URLSearchParams(window.location.search);
+        const nextScene = params.get('scene') === 'game' ? 'PikachuGame' : 'MainMenu';
+        this.scene.start(nextScene);
     }
 }
