@@ -15,17 +15,10 @@ const CARD_HOVER_BG = 0xe0e8f0;
 const CARD_SELECT_BG = 0xc8f7c5;
 const CARD_MISMATCH_BG = 0xf5b7b1;
 
-const SUIT_INFO = {
-    S: { symbol: '♠', color: '#2c3e50' },
-    C: { symbol: '♣', color: '#27ae60' },
-    D: { symbol: '♦', color: '#e74c3c' },
-    H: { symbol: '♥', color: '#e74c3c' }
-};
-
 const CARD_TYPES = [
-    '2S', '3S', '4S', '5S', '6S', '7S', '8S', '9S',
-    '2C', '3C', '4C', '5C', '6C', '7C', '8C', '9C',
-    '2D', '3D', '4D', '5D', '6D', '7D', '8D', '9D'
+    '😀', '😂', '🥰', '😎', '🤩', '😴', '🤔', '😱',
+    '🐶', '🐱', '🐸', '🦊', '🐻', '🐼', '🐨', '🦁',
+    '🍎', '🍕', '🚀', '💎', '⭐', '🔥', '🦄', '🌈'
 ];
 
 export class PikachuGame extends Scene
@@ -159,26 +152,14 @@ export class PikachuGame extends Scene
                 const x = startX + (col - 1) * CARD_W;
                 const y = BOARD_Y + (row - 1) * CARD_H;
 
-                // Parse card type: e.g. '2S' → value='2', suit='S'
-                const suit = cell.type.slice(-1);
-                const value = cell.type.slice(0, -1);
-                const info = SUIT_INFO[suit];
-
-                // Card container: background + value + suit symbol
                 const bg = this.add.rectangle(0, 0, CARD_W - 6, CARD_H - 6, CARD_BG)
                     .setStrokeStyle(1, CARD_BORDER);
 
-                const valueText = this.add.text(0, -14, value, {
-                    fontFamily: 'Arial Black', fontSize: 15, color: info.color,
-                    align: 'center'
+                const emoji = this.add.text(0, 0, cell.type, {
+                    fontSize: 28, align: 'center'
                 }).setOrigin(0.5);
 
-                const suitText = this.add.text(0, 12, info.symbol, {
-                    fontSize: 22, color: info.color,
-                    align: 'center'
-                }).setOrigin(0.5);
-
-                const container = this.add.container(x, y, [bg, valueText, suitText]);
+                const container = this.add.container(x, y, [bg, emoji]);
                 container.setSize(CARD_W - 6, CARD_H - 6);
                 container.setInteractive({ useHandCursor: true });
 
