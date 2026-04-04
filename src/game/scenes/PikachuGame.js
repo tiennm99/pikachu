@@ -4,10 +4,10 @@ import { PikachuGameLogic } from '../logic/PikachuGameLogic';
 
 const BOARD_WIDTH = 20;
 const BOARD_HEIGHT = 8;
-const CARD_W = 50;
-const CARD_H = 50;
+const CARD_W = 55;
+const CARD_H = 55;
 const BOARD_X = 600;
-const BOARD_Y = 220;
+const BOARD_Y = 200;
 
 const CARD_BG = 0xfaf8ef;
 const CARD_BORDER = 0xd5ceb8;
@@ -152,15 +152,16 @@ export class PikachuGame extends Scene
                 const x = startX + (col - 1) * CARD_W;
                 const y = BOARD_Y + (row - 1) * CARD_H;
 
-                const bg = this.add.rectangle(0, 0, CARD_W - 6, CARD_H - 6, CARD_BG)
+                const bg = this.add.rectangle(0, 0, CARD_W - 4, CARD_H - 4, CARD_BG)
                     .setStrokeStyle(1, CARD_BORDER);
 
                 const emoji = this.add.text(0, 0, cell.type, {
-                    fontSize: 32, align: 'center'
+                    fontSize: 30, align: 'center',
+                    padding: { top: 2 }
                 }).setOrigin(0.5);
 
                 const container = this.add.container(x, y, [bg, emoji]);
-                container.setSize(CARD_W - 6, CARD_H - 6);
+                container.setSize(CARD_W - 4, CARD_H - 4);
                 container.setInteractive({ useHandCursor: true });
 
                 cell.sprite = container;
