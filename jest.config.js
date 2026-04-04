@@ -1,12 +1,4 @@
 export default {
-  // Use ES modules
-  preset: 'node',
-  extensionsToTreatAsEsm: ['.js'],
-  globals: {
-    'ts-jest': {
-      useESM: true
-    }
-  },
   transform: {},
   
   // Test environment

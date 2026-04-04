@@ -2,7 +2,7 @@ import { PikachuBaseTest } from '../base/PikachuBaseTest.js';
 
 describe('I-Pattern Tests', () => {
     let tester;
-    
+
     beforeEach(() => {
         tester = new PikachuBaseTest();
     });
@@ -12,7 +12,7 @@ describe('I-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);
             tester.placeCard(matrix, 1, 5, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Horizontal line - clear path',
                 matrix,
@@ -20,23 +20,30 @@ describe('I-Pattern Tests', () => {
                 true,
                 'I-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
         test('should not connect cards with blocked horizontal path', () => {
             const matrix = tester.createEmptyMatrix();
-            tester.placeCard(matrix, 1, 1, 1);
-            tester.placeCard(matrix, 1, 3, 2); // blocking card
-            tester.placeCard(matrix, 1, 5, 1);
-            
+            // Fill entire board so no alternative patterns can route around
+            for (let row = 1; row <= 8; row++) {
+                for (let col = 1; col <= 20; col++) {
+                    tester.placeCard(matrix, row, col, 2);
+                }
+            }
+            // Place target cards in the middle (away from border)
+            tester.placeCard(matrix, 4, 5, 1);
+            tester.placeCard(matrix, 4, 7, 1);
+            // (4,6) remains as blocker type 2
+
             const testCase = tester.createTestCase(
                 'Horizontal line - blocked path',
                 matrix,
-                1, 1, 1, 5,
+                4, 5, 4, 7,
                 false
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -44,7 +51,7 @@ describe('I-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);
             tester.placeCard(matrix, 1, 2, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Adjacent cards - horizontal',
                 matrix,
@@ -52,7 +59,7 @@ describe('I-Pattern Tests', () => {
                 true,
                 'I-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -60,7 +67,7 @@ describe('I-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);
             tester.placeCard(matrix, 1, 20, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Long horizontal line',
                 matrix,
@@ -68,7 +75,7 @@ describe('I-Pattern Tests', () => {
                 true,
                 'I-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
     });
@@ -78,7 +85,7 @@ describe('I-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);
             tester.placeCard(matrix, 4, 1, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Vertical line - clear path',
                 matrix,
@@ -86,23 +93,30 @@ describe('I-Pattern Tests', () => {
                 true,
                 'I-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
         test('should not connect cards with blocked vertical path', () => {
             const matrix = tester.createEmptyMatrix();
-            tester.placeCard(matrix, 1, 1, 1);
-            tester.placeCard(matrix, 2, 1, 2); // blocking card
-            tester.placeCard(matrix, 4, 1, 1);
-            
+            // Fill entire board so no alternative patterns can route around
+            for (let row = 1; row <= 8; row++) {
+                for (let col = 1; col <= 20; col++) {
+                    tester.placeCard(matrix, row, col, 2);
+                }
+            }
+            // Place target cards in the middle
+            tester.placeCard(matrix, 3, 10, 1);
+            tester.placeCard(matrix, 5, 10, 1);
+            // (4,10) remains as blocker type 2
+
             const testCase = tester.createTestCase(
                 'Vertical line - blocked path',
                 matrix,
-                1, 1, 4, 1,
+                3, 10, 5, 10,
                 false
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -110,7 +124,7 @@ describe('I-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);
             tester.placeCard(matrix, 2, 1, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Adjacent cards - vertical',
                 matrix,
@@ -118,7 +132,7 @@ describe('I-Pattern Tests', () => {
                 true,
                 'I-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -126,7 +140,7 @@ describe('I-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);
             tester.placeCard(matrix, 8, 1, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Long vertical line',
                 matrix,
@@ -134,31 +148,37 @@ describe('I-Pattern Tests', () => {
                 true,
                 'I-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
     });
 
     describe('Edge Cases', () => {
-        test('should not connect diagonal cards', () => {
+        test('should not connect diagonal cards when all paths blocked', () => {
             const matrix = tester.createEmptyMatrix();
-            tester.placeCard(matrix, 1, 1, 1);
-            tester.placeCard(matrix, 2, 2, 1);
-            
+            // Fill entire board to block all patterns
+            for (let row = 1; row <= 8; row++) {
+                for (let col = 1; col <= 20; col++) {
+                    tester.placeCard(matrix, row, col, 2);
+                }
+            }
+            tester.placeCard(matrix, 4, 10, 1);
+            tester.placeCard(matrix, 5, 11, 1);
+
             const testCase = tester.createTestCase(
-                'Diagonal - should not work',
+                'Diagonal - should not work when all paths blocked',
                 matrix,
-                1, 1, 2, 2,
+                4, 10, 5, 11,
                 false
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
         test('should not connect same position', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Same position - should fail',
                 matrix,
@@ -167,7 +187,7 @@ describe('I-Pattern Tests', () => {
                 null,
                 'Cannot select the same position'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -175,7 +195,7 @@ describe('I-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);
             tester.placeCard(matrix, 1, 5, 2); // different card type
-            
+
             const testCase = tester.createTestCase(
                 'Different card types',
                 matrix,
@@ -184,7 +204,7 @@ describe('I-Pattern Tests', () => {
                 null,
                 'Cards are different types'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -192,7 +212,7 @@ describe('I-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);
             // Don't place card at (1,5)
-            
+
             const testCase = tester.createTestCase(
                 'Empty position',
                 matrix,
@@ -201,7 +221,7 @@ describe('I-Pattern Tests', () => {
                 null,
                 'One or both positions are empty'
             );
-            
+
             tester.expectTestCase(testCase);
         });
     });
@@ -211,7 +231,7 @@ describe('I-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);  // top-left corner
             tester.placeCard(matrix, 1, 20, 1); // top-right corner
-            
+
             const testCase = tester.createTestCase(
                 'Cards at board edges',
                 matrix,
@@ -219,7 +239,7 @@ describe('I-Pattern Tests', () => {
                 true,
                 'I-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -227,7 +247,7 @@ describe('I-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);  // top-left
             tester.placeCard(matrix, 8, 1, 1);  // bottom-left
-            
+
             const testCase = tester.createTestCase(
                 'Cards at opposite corners',
                 matrix,
@@ -235,7 +255,7 @@ describe('I-Pattern Tests', () => {
                 true,
                 'I-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
     });

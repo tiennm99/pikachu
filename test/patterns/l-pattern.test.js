@@ -2,7 +2,7 @@ import { PikachuBaseTest } from '../base/PikachuBaseTest.js';
 
 describe('L-Pattern Tests', () => {
     let tester;
-    
+
     beforeEach(() => {
         tester = new PikachuBaseTest();
     });
@@ -12,7 +12,7 @@ describe('L-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);
             tester.placeCard(matrix, 3, 3, 1);
-            
+
             const testCase = tester.createTestCase(
                 'L-shape via first corner',
                 matrix,
@@ -20,7 +20,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'L-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -28,7 +28,7 @@ describe('L-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 3, 1);
             tester.placeCard(matrix, 3, 1, 1);
-            
+
             const testCase = tester.createTestCase(
                 'L-shape via second corner',
                 matrix,
@@ -36,7 +36,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'L-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -45,7 +45,7 @@ describe('L-Pattern Tests', () => {
             tester.placeCard(matrix, 1, 1, 1);
             tester.placeCard(matrix, 1, 3, 2); // block first corner
             tester.placeCard(matrix, 3, 3, 1);
-            
+
             const testCase = tester.createTestCase(
                 'L-shape with one corner blocked',
                 matrix,
@@ -53,43 +53,54 @@ describe('L-Pattern Tests', () => {
                 true,
                 'L-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
-        test('should fail when both corners are blocked', () => {
+        test('should fail when both corners are blocked and no other path exists', () => {
             const matrix = tester.createEmptyMatrix();
-            tester.placeCard(matrix, 1, 1, 1);
-            tester.placeCard(matrix, 1, 3, 2); // block first corner
-            tester.placeCard(matrix, 3, 1, 2); // block second corner
-            tester.placeCard(matrix, 3, 3, 1);
-            
+            // Fill entire board to block all patterns
+            for (let row = 1; row <= 8; row++) {
+                for (let col = 1; col <= 20; col++) {
+                    tester.placeCard(matrix, row, col, 2);
+                }
+            }
+            // Place target cards in the middle
+            tester.placeCard(matrix, 4, 8, 1);
+            tester.placeCard(matrix, 6, 10, 1);
+            // L-corners (4,10) and (6,8) remain blocked by fill
+
             const testCase = tester.createTestCase(
                 'L-shape with both corners blocked',
                 matrix,
-                1, 1, 3, 3,
+                4, 8, 6, 10,
                 false
             );
-            
+
             tester.expectTestCase(testCase);
         });
     });
 
     describe('Path Blocking', () => {
-        test('should fail when path to corner is blocked', () => {
+        test('should fail when all paths are completely blocked', () => {
             const matrix = tester.createEmptyMatrix();
-            tester.placeCard(matrix, 1, 1, 1);
-            tester.placeCard(matrix, 1, 2, 2); // block horizontal path
-            tester.placeCard(matrix, 2, 1, 2); // block vertical path
-            tester.placeCard(matrix, 3, 3, 1);
-            
+            // Fill entire board to prevent any pattern
+            for (let row = 1; row <= 8; row++) {
+                for (let col = 1; col <= 20; col++) {
+                    tester.placeCard(matrix, row, col, 2);
+                }
+            }
+            // Place target cards in the middle
+            tester.placeCard(matrix, 4, 8, 1);
+            tester.placeCard(matrix, 6, 10, 1);
+
             const testCase = tester.createTestCase(
-                'L-shape with blocked paths to corners',
+                'L-shape with all paths blocked',
                 matrix,
-                1, 1, 3, 3,
+                4, 8, 6, 10,
                 false
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -98,7 +109,7 @@ describe('L-Pattern Tests', () => {
             tester.placeCard(matrix, 1, 1, 1);
             tester.placeCard(matrix, 1, 2, 2); // block horizontal path to first corner
             tester.placeCard(matrix, 3, 3, 1);
-            
+
             const testCase = tester.createTestCase(
                 'L-shape with one path blocked',
                 matrix,
@@ -106,7 +117,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'L-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
     });
@@ -116,7 +127,7 @@ describe('L-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 4, 1, 1);
             tester.placeCard(matrix, 1, 4, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Up-then-right turn',
                 matrix,
@@ -124,7 +135,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'L-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -132,7 +143,7 @@ describe('L-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 4, 1);
             tester.placeCard(matrix, 4, 1, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Down-then-left turn',
                 matrix,
@@ -140,7 +151,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'L-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -148,7 +159,7 @@ describe('L-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 3, 5, 1);
             tester.placeCard(matrix, 1, 2, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Left-then-up turn',
                 matrix,
@@ -156,7 +167,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'L-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -164,7 +175,7 @@ describe('L-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 2, 1);
             tester.placeCard(matrix, 3, 5, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Right-then-down turn',
                 matrix,
@@ -172,7 +183,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'L-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
     });
@@ -182,7 +193,7 @@ describe('L-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);  // top-left corner
             tester.placeCard(matrix, 8, 20, 1); // bottom-right corner
-            
+
             const testCase = tester.createTestCase(
                 'L-shape at board edges',
                 matrix,
@@ -190,7 +201,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'L-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -198,7 +209,7 @@ describe('L-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);  // top-left
             tester.placeCard(matrix, 1, 20, 1); // top-right
-            
+
             // This should be I-pattern, not L-pattern
             const testCase = tester.createTestCase(
                 'Straight line at board boundary',
@@ -207,7 +218,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'I-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
     });
@@ -219,7 +230,7 @@ describe('L-Pattern Tests', () => {
             tester.placeCard(matrix, 2, 2, 2); // blocking card
             tester.placeCard(matrix, 3, 3, 2); // blocking card
             tester.placeCard(matrix, 5, 5, 1);
-            
+
             const testCase = tester.createTestCase(
                 'L-shape with multiple blocking cards',
                 matrix,
@@ -227,7 +238,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'L-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -235,12 +246,12 @@ describe('L-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 2, 2, 1);
             tester.placeCard(matrix, 4, 4, 1);
-            
+
             // Fill some positions but leave L-path open
             tester.placeCard(matrix, 3, 3, 2);
             tester.placeCard(matrix, 1, 1, 2);
             tester.placeCard(matrix, 5, 5, 2);
-            
+
             const testCase = tester.createTestCase(
                 'L-shape in dense board',
                 matrix,
@@ -248,7 +259,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'L-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
     });
@@ -258,7 +269,7 @@ describe('L-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);
             tester.placeCard(matrix, 1, 2, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Adjacent cards should use I-pattern',
                 matrix,
@@ -266,7 +277,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'I-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -274,7 +285,7 @@ describe('L-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);
             tester.placeCard(matrix, 1, 10, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Straight line should use I-pattern',
                 matrix,
@@ -282,7 +293,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'I-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
     });
@@ -292,7 +303,7 @@ describe('L-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);
             tester.placeCard(matrix, 3, 3, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Corner at middle position',
                 matrix,
@@ -300,7 +311,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'L-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
 
@@ -308,7 +319,7 @@ describe('L-Pattern Tests', () => {
             const matrix = tester.createEmptyMatrix();
             tester.placeCard(matrix, 1, 1, 1);
             tester.placeCard(matrix, 6, 10, 1);
-            
+
             const testCase = tester.createTestCase(
                 'Asymmetric L-shape',
                 matrix,
@@ -316,7 +327,7 @@ describe('L-Pattern Tests', () => {
                 true,
                 'L-pattern'
             );
-            
+
             tester.expectTestCase(testCase);
         });
     });

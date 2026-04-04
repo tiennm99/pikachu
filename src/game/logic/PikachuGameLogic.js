@@ -295,14 +295,26 @@ export class PikachuGameLogic {
     }
 
     checkZPattern(start, end) {
+        // H-V-H: horizontal, vertical, horizontal (scan connecting columns)
+        for (let col = 0; col < this.matrixWidth; col++) {
+            if (col === start.col || col === end.col) continue;
+            if (this.board[start.row][col].type !== 0) continue;
+            if (this.board[end.row][col].type !== 0) continue;
+            if (this.isPathClear(start, {row: start.row, col}) &&
+                this.isPathClear({row: start.row, col}, {row: end.row, col}) &&
+                this.isPathClear({row: end.row, col}, end)) {
+                return true;
+            }
+        }
+        // V-H-V: vertical, horizontal, vertical (scan connecting rows)
         for (let row = 0; row < this.matrixHeight; row++) {
-            for (let col = 0; col < this.matrixWidth; col++) {
-                if (this.board[row][col].type !== 0) continue;
-
-                const midPoint = {row, col};
-                if (this.isPathClear(start, midPoint) && this.isPathClear(midPoint, end)) {
-                    return true;
-                }
+            if (row === start.row || row === end.row) continue;
+            if (this.board[row][start.col].type !== 0) continue;
+            if (this.board[row][end.col].type !== 0) continue;
+            if (this.isPathClear(start, {row, col: start.col}) &&
+                this.isPathClear({row, col: start.col}, {row, col: end.col}) &&
+                this.isPathClear({row, col: end.col}, end)) {
+                return true;
             }
         }
         return false;
@@ -465,14 +477,30 @@ export class PikachuGameLogic {
     }
 
     checkZPatternWithPath(start, end) {
+        // H-V-H: scan connecting columns
+        for (let col = 0; col < this.matrixWidth; col++) {
+            if (col === start.col || col === end.col) continue;
+            if (this.board[start.row][col].type !== 0) continue;
+            if (this.board[end.row][col].type !== 0) continue;
+            const corner1 = {row: start.row, col};
+            const corner2 = {row: end.row, col};
+            if (this.isPathClear(start, corner1) &&
+                this.isPathClear(corner1, corner2) &&
+                this.isPathClear(corner2, end)) {
+                return [start, corner1, corner2, end];
+            }
+        }
+        // V-H-V: scan connecting rows
         for (let row = 0; row < this.matrixHeight; row++) {
-            for (let col = 0; col < this.matrixWidth; col++) {
-                if (this.board[row][col].type !== 0) continue;
-
-                const midPoint = {row, col};
-                if (this.isPathClear(start, midPoint) && this.isPathClear(midPoint, end)) {
-                    return [start, midPoint, end];
-                }
+            if (row === start.row || row === end.row) continue;
+            if (this.board[row][start.col].type !== 0) continue;
+            if (this.board[row][end.col].type !== 0) continue;
+            const corner1 = {row, col: start.col};
+            const corner2 = {row, col: end.col};
+            if (this.isPathClear(start, corner1) &&
+                this.isPathClear(corner1, corner2) &&
+                this.isPathClear(corner2, end)) {
+                return [start, corner1, corner2, end];
             }
         }
         return null;

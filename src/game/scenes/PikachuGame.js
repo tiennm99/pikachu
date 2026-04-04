@@ -1,5 +1,6 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
+import { PikachuGameLogic } from '../logic/PikachuGameLogic';
 
 export class PikachuGame extends Scene
 {
@@ -18,6 +19,7 @@ export class PikachuGame extends Scene
         this.gameStarted = false;
         this.debugLines = [];
         this.debugMode = false;
+        this.logic = new PikachuGameLogic(this.boardWidth, this.boardHeight);
     }
 
     create ()
@@ -157,6 +159,7 @@ export class PikachuGame extends Scene
             }
         }
 
+        this.logic.board = this.board;
         this.renderBoard();
         this.gameStarted = true;
     }
@@ -221,7 +224,7 @@ export class PikachuGame extends Scene
         // Check if cards are of the same type
         if (firstCell.type === secondCell.type) {
             // Check if there's a valid path between them
-            const pathResult = this.hasValidPathWithDebug(first, second);
+            const pathResult = this.logic.hasValidPathWithDebug(first, second);
             if (pathResult.valid) {
                 // Valid match - show green line and remove cards
                 if (this.debugMode) {
@@ -251,243 +254,6 @@ export class PikachuGame extends Scene
         }
     }
 
-    hasValidPath(start, end)
-    {
-        // Check I-pattern (straight line)
-        if (this.checkIPattern(start, end)) return true;
-
-        // Check L-pattern (one turn)
-        if (this.checkLPattern(start, end)) return true;
-
-        // Check U-pattern (two turns with border)
-        if (this.checkUPattern(start, end)) return true;
-
-        // Check Z-pattern (two turns)
-        if (this.checkZPattern(start, end)) return true;
-
-        return false;
-    }
-
-    hasValidPathWithDebug(start, end)
-    {
-        // Check I-pattern (straight line)
-        const iPath = this.checkIPatternWithPath(start, end);
-        if (iPath) return { valid: true, path: iPath };
-
-        // Check L-pattern (one turn)
-        const lPath = this.checkLPatternWithPath(start, end);
-        if (lPath) return { valid: true, path: lPath };
-
-        // Check U-pattern (two turns with border)
-        const uPath = this.checkUPatternWithPath(start, end);
-        if (uPath) return { valid: true, path: uPath };
-
-        // Check Z-pattern (two turns)
-        const zPath = this.checkZPatternWithPath(start, end);
-        if (zPath) return { valid: true, path: zPath };
-
-        return { valid: false, path: null };
-    }
-
-    checkIPattern(start, end)
-    {
-        // Horizontal line
-        if (start.row === end.row) {
-            const minCol = Math.min(start.col, end.col);
-            const maxCol = Math.max(start.col, end.col);
-            for (let col = minCol + 1; col < maxCol; col++) {
-                if (this.board[start.row][col].visible) return false;
-            }
-            return true;
-        }
-
-        // Vertical line
-        if (start.col === end.col) {
-            const minRow = Math.min(start.row, end.row);
-            const maxRow = Math.max(start.row, end.row);
-            for (let row = minRow + 1; row < maxRow; row++) {
-                if (this.board[row][start.col].visible) return false;
-            }
-            return true;
-        }
-
-        return false;
-    }
-
-    checkLineX(y1, y2, x)
-    {
-        // Find point have column max and min
-        const min = Math.min(y1, y2);
-        const max = Math.max(y1, y2);
-        
-        // Run column
-        for (let y = min + 1; y < max; y++) {
-            if (this.board[x][y].type !== 0) { // if see barrier then die
-                return false;
-            }
-        }
-        // Not die -> success
-        return true;
-    }
-
-    checkLineY(x1, x2, y)
-    {
-        const min = Math.min(x1, x2);
-        const max = Math.max(x1, x2);
-        
-        for (let x = min + 1; x < max; x++) {
-            if (this.board[x][y].type !== 0) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    checkLPattern(start, end)
-    {
-        // Try corner at start.row, end.col
-        if (this.isPathClear(start, {row: start.row, col: end.col}) &&
-            this.isPathClear({row: start.row, col: end.col}, end) &&
-            this.board[start.row][end.col].type === 0) {
-            return true;
-        }
-
-        // Try corner at end.row, start.col
-        if (this.isPathClear(start, {row: end.row, col: start.col}) &&
-            this.isPathClear({row: end.row, col: start.col}, end) &&
-            this.board[end.row][start.col].type === 0) {
-            return true;
-        }
-
-        return false;
-    }
-
-    checkUPattern(start, end)
-    {
-        // Check more right
-        if (this.checkMoreLineX(start, end, 1)) return true;
-        // Check more left
-        if (this.checkMoreLineX(start, end, -1)) return true;
-        // Check more down
-        if (this.checkMoreLineY(start, end, 1)) return true;
-        // Check more up
-        if (this.checkMoreLineY(start, end, -1)) return true;
-        
-        return false;
-    }
-
-    checkMoreLineX(start, end, type)
-    {
-        // Find point have y min
-        const pMinY = start.col < end.col ? start : end;
-        const pMaxY = start.col < end.col ? end : start;
-        
-        // Find line and y begin
-        let y = pMaxY.col + type;
-        let row = pMinY.row;
-        let colFinish = pMaxY.col;
-        
-        if (type === -1) {
-            colFinish = pMinY.col;
-            y = pMinY.col + type;
-            row = pMaxY.row;
-        }
-
-        // Check if we can connect horizontally first
-        if ((this.board[row][colFinish].type === 0 || pMinY.col === pMaxY.col) &&
-            this.checkLineX(pMinY.col, pMaxY.col, row)) {
-            
-            // Check extension beyond border
-            while (y >= 0 && y < this.matrixWidth && 
-                   this.board[pMinY.row][y].type === 0 && 
-                   this.board[pMaxY.row][y].type === 0) {
-                
-                if (this.checkLineY(pMinY.row, pMaxY.row, y)) {
-                    return true;
-                }
-                y += type;
-            }
-        }
-        return false;
-    }
-
-    checkMoreLineY(start, end, type)
-    {
-        // Find point have x min
-        const pMinX = start.row < end.row ? start : end;
-        const pMaxX = start.row < end.row ? end : start;
-        
-        let x = pMaxX.row + type;
-        let col = pMinX.col;
-        let rowFinish = pMaxX.row;
-        
-        if (type === -1) {
-            rowFinish = pMinX.row;
-            x = pMinX.row + type;
-            col = pMaxX.col;
-        }
-
-        // Check if we can connect vertically first
-        if ((this.board[rowFinish][col].type === 0 || pMinX.row === pMaxX.row) &&
-            this.checkLineY(pMinX.row, pMaxX.row, col)) {
-            
-            // Check extension beyond border
-            while (x >= 0 && x < this.matrixHeight && 
-                   this.board[x][pMinX.col].type === 0 && 
-                   this.board[x][pMaxX.col].type === 0) {
-                
-                if (this.checkLineX(pMinX.col, pMaxX.col, x)) {
-                    return true;
-                }
-                x += type;
-            }
-        }
-        return false;
-    }
-
-    checkZPattern(start, end)
-    {
-        // Check all possible two-turn paths within the matrix
-        for (let row = 0; row < this.matrixHeight; row++) {
-            for (let col = 0; col < this.matrixWidth; col++) {
-                if (this.board[row][col].type !== 0) continue;
-
-                const midPoint = {row, col};
-                if (this.isPathClear(start, midPoint) && this.isPathClear(midPoint, end)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    isPathClear(start, end)
-    {
-        if (start.row === end.row && start.col === end.col) return true;
-
-        // Horizontal path
-        if (start.row === end.row) {
-            const minCol = Math.min(start.col, end.col);
-            const maxCol = Math.max(start.col, end.col);
-            for (let col = minCol + 1; col < maxCol; col++) {
-                if (this.board[start.row][col].type !== 0) return false;
-            }
-            return true;
-        }
-
-        // Vertical path
-        if (start.col === end.col) {
-            const minRow = Math.min(start.row, end.row);
-            const maxRow = Math.max(start.row, end.row);
-            for (let row = minRow + 1; row < maxRow; row++) {
-                if (this.board[row][start.col].type !== 0) return false;
-            }
-            return true;
-        }
-
-        return false;
-    }
-
     removeCards(first, second)
     {
         const firstCell = this.board[first.row][first.col];
@@ -504,6 +270,8 @@ export class PikachuGame extends Scene
                 secondCell.sprite.destroy();
                 firstCell.visible = false;
                 secondCell.visible = false;
+                firstCell.type = 0;
+                secondCell.type = 0;
                 firstCell.sprite = null;
                 secondCell.sprite = null;
             }
@@ -638,7 +406,7 @@ export class PikachuGame extends Scene
                         if (row1 === row2 && col1 === col2) continue;
 
                         if (this.board[row1][col1].type === this.board[row2][col2].type &&
-                            this.hasValidPath({row: row1, col: col1}, {row: row2, col: col2})) {
+                            this.logic.hasValidPath({row: row1, col: col1}, {row: row2, col: col2})) {
 
                             // Highlight the hint pair
                             this.board[row1][col1].sprite.setTint(0xffff00);
@@ -658,164 +426,6 @@ export class PikachuGame extends Scene
                 }
             }
         }
-    }
-
-    checkIPatternWithPath(start, end)
-    {
-        // Horizontal line
-        if (start.row === end.row) {
-            const minCol = Math.min(start.col, end.col);
-            const maxCol = Math.max(start.col, end.col);
-            for (let col = minCol + 1; col < maxCol; col++) {
-                if (this.board[start.row][col].type !== 0) return null;
-            }
-            return [start, end];
-        }
-
-        // Vertical line
-        if (start.col === end.col) {
-            const minRow = Math.min(start.row, end.row);
-            const maxRow = Math.max(start.row, end.row);
-            for (let row = minRow + 1; row < maxRow; row++) {
-                if (this.board[row][start.col].type !== 0) return null;
-            }
-            return [start, end];
-        }
-
-        return null;
-    }
-
-    checkLPatternWithPath(start, end)
-    {
-        // Try corner at start.row, end.col
-        const corner1 = {row: start.row, col: end.col};
-        if (this.isPathClear(start, corner1) &&
-            this.isPathClear(corner1, end) &&
-            this.board[start.row][end.col].type === 0) {
-            return [start, corner1, end];
-        }
-
-        // Try corner at end.row, start.col
-        const corner2 = {row: end.row, col: start.col};
-        if (this.isPathClear(start, corner2) &&
-            this.isPathClear(corner2, end) &&
-            this.board[end.row][start.col].type === 0) {
-            return [start, corner2, end];
-        }
-
-        return null;
-    }
-
-    checkUPatternWithPath(start, end)
-    {
-        // Check more right
-        let path = this.checkMoreLineXWithPath(start, end, 1);
-        if (path) return path;
-        
-        // Check more left
-        path = this.checkMoreLineXWithPath(start, end, -1);
-        if (path) return path;
-        
-        // Check more down
-        path = this.checkMoreLineYWithPath(start, end, 1);
-        if (path) return path;
-        
-        // Check more up
-        path = this.checkMoreLineYWithPath(start, end, -1);
-        if (path) return path;
-        
-        return null;
-    }
-
-    checkMoreLineXWithPath(start, end, type)
-    {
-        // Find point have y min
-        const pMinY = start.col < end.col ? start : end;
-        const pMaxY = start.col < end.col ? end : start;
-        
-        // Find line and y begin
-        let y = pMaxY.col + type;
-        let row = pMinY.row;
-        let colFinish = pMaxY.col;
-        
-        if (type === -1) {
-            colFinish = pMinY.col;
-            y = pMinY.col + type;
-            row = pMaxY.row;
-        }
-
-        // Check if we can connect horizontally first
-        if ((this.board[row][colFinish].type === 0 || pMinY.col === pMaxY.col) &&
-            this.checkLineX(pMinY.col, pMaxY.col, row)) {
-            
-            // Check extension beyond border
-            while (y >= 0 && y < this.matrixWidth && 
-                   this.board[pMinY.row][y].type === 0 && 
-                   this.board[pMaxY.row][y].type === 0) {
-                
-                if (this.checkLineY(pMinY.row, pMaxY.row, y)) {
-                    // Create path with the connecting point
-                    const connectPoint1 = {row: pMinY.row, col: y};
-                    const connectPoint2 = {row: pMaxY.row, col: y};
-                    return [pMinY, connectPoint1, connectPoint2, pMaxY];
-                }
-                y += type;
-            }
-        }
-        return null;
-    }
-
-    checkMoreLineYWithPath(start, end, type)
-    {
-        // Find point have x min
-        const pMinX = start.row < end.row ? start : end;
-        const pMaxX = start.row < end.row ? end : start;
-        
-        let x = pMaxX.row + type;
-        let col = pMinX.col;
-        let rowFinish = pMaxX.row;
-        
-        if (type === -1) {
-            rowFinish = pMinX.row;
-            x = pMinX.row + type;
-            col = pMaxX.col;
-        }
-
-        // Check if we can connect vertically first
-        if ((this.board[rowFinish][col].type === 0 || pMinX.row === pMaxX.row) &&
-            this.checkLineY(pMinX.row, pMaxX.row, col)) {
-            
-            // Check extension beyond border
-            while (x >= 0 && x < this.matrixHeight && 
-                   this.board[x][pMinX.col].type === 0 && 
-                   this.board[x][pMaxX.col].type === 0) {
-                
-                if (this.checkLineX(pMinX.col, pMaxX.col, x)) {
-                    // Create path with the connecting point
-                    const connectPoint1 = {row: x, col: pMinX.col};
-                    const connectPoint2 = {row: x, col: pMaxX.col};
-                    return [pMinX, connectPoint1, connectPoint2, pMaxX];
-                }
-                x += type;
-            }
-        }
-        return null;
-    }
-
-    checkZPatternWithPath(start, end)
-    {
-        // Check all possible two-turn paths within the matrix
-        for (let row = 0; row < this.matrixHeight; row++) {
-            for (let col = 0; col < this.matrixWidth; col++) {
-                if (this.board[row][col].type !== 0) continue;
-
-                const midPoint = {row, col};
-                if (this.isPathClear(start, midPoint) && this.isPathClear(midPoint, end)) {
-                    return [start, midPoint, end];
-                }
-            }
-        }
-        return null;
     }
 
     shuffleArray(array)
