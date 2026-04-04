@@ -155,8 +155,9 @@ export class PikachuGame extends Scene
                 const bg = this.add.rectangle(0, 0, CARD_W - 2, CARD_H - 2, CARD_BG)
                     .setStrokeStyle(1, CARD_BORDER);
 
-                const emoji = this.add.text(0, -1, cell.type, {
-                    fontSize: 32, align: 'center'
+                const emoji = this.add.text(0, 0, cell.type, {
+                    fontSize: 28,
+                    padding: { top: 4, bottom: 4, left: 2, right: 2 }
                 }).setOrigin(0.5);
 
                 const container = this.add.container(x, y, [bg, emoji]);
