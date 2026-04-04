@@ -1,4 +1,4 @@
-// Path drawing utilities for connection lines between matched/mismatched cards
+// Path drawing utilities for connection lines between matched/mismatched cells
 
 import { BOARD_WIDTH, BOARD_X, BOARD_Y, CARD_W, CARD_H } from './pikachu-game-config.js';
 

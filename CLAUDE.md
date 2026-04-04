@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview
-This is a Pikachu card matching game built with Phaser 3 and Next.js. The game implements the classic "Pikachu" card matching rules where players must match identical cards using I, L, U, or Z-shaped connection patterns.
+This is a Pikachu emoji matching game built with Phaser 3 and Next.js. The game implements the classic "Pikachu" matching rules where players must match identical emoji pairs using I, L, U, or Z-shaped connection patterns.
 
 ## Commands
 
@@ -48,22 +48,22 @@ This is a Pikachu card matching game built with Phaser 3 and Next.js. The game i
 1. **Boot** - Initial boot scene
 2. **Preloader** - Asset loading scene  
 3. **MainMenu** - Main menu interface
-4. **PikachuGame** - Main game scene with card matching logic
+4. **PikachuGame** - Main game scene with emoji matching logic
 
 ### Game Logic
-- **Board**: 20x8 grid of cards using standard playing card assets
+- **Board**: 20x8 grid of emoji cells
 - **Matrix System**: 10x22 matrix with border padding (8x20 actual game board)
-- **Matching Rules**: Cards must be identical and connected via valid paths:
+- **Matching Rules**: Cells must contain identical emojis and be connected via valid paths:
   - **I-pattern**: Straight line (horizontal or vertical)
   - **L-pattern**: Single 90-degree turn
   - **U-pattern**: Path extending to board border with two turns
   - **Z-pattern**: Two-turn path through empty cells
-- **Game Features**: New game, hint system, card selection with visual feedback, debug visualization toggle
-- **Testing**: Comprehensive Jest test suite with 90+ test cases covering all patterns
+- **Game Features**: New game, hint system, selection with visual feedback, score/combo/timer, debug visualization toggle
+- **Testing**: Comprehensive Jest test suite with 84 test cases covering all patterns
 
 ### Asset Structure
-- Cards are stored in `public/assets/cards/` with naming convention like `2S.png`, `KC.png`
 - Background image at `public/assets/bg.png`
+- Emoji symbols rendered as Phaser text objects (no image assets needed)
 - Assets are loaded through Phaser's standard asset loading system
 
 ### React-Phaser Communication

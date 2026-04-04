@@ -7,8 +7,8 @@ export default function Home() {
     return (
         <>
             <Head>
-                <title>Pikachu Card Matching</title>
-                <meta name="description" content="Classic Pikachu card matching game built with Phaser 3 and Next.js" />
+                <title>Pikachu Connect</title>
+                <meta name="description" content="Classic Pikachu emoji matching game built with Phaser 3 and Next.js" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <link rel="icon" href="/favicon.png" />
             </Head>

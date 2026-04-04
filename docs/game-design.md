@@ -187,13 +187,13 @@ The game is complete when no visible cells remain on the board (all 160 cells ha
 - Accent color (titles): `#f1c40f` (gold)
 - Text: `#ecf0f1` (light), `#7f8c8d` (muted)
 
-### Card Rendering
+### Cell Rendering
 
-Cards are rendered as Phaser containers with:
-- **Background rectangle:** 50x50px cream (`#faf8ef`) with 1px border (`#d5ceb8`)
+Cells are rendered as Phaser containers with:
+- **Background:** 48x48px rounded rectangle (6px radius) with dark fill and subtle border
 - **Emoji symbol:** 28px centered with padding to prevent glyph clipping
 
-### Card States
+### Cell States
 
 | State | Visual |
 |-------|--------|
@@ -228,7 +228,7 @@ All buttons have hover scale (1.05x) and press feedback (0.95x).
 
 ## Symbol Set
 
-The game uses 24 emoji symbols as card faces:
+The game uses 24 emoji symbols as cell faces:
 
 ```
 😀 😂 🥰 😎 🤩 😴 🤔 😱

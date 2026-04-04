@@ -32,7 +32,7 @@ export class MainMenu extends Scene {
         });
 
         // Subtitle — slide up + fade
-        const subtitle = this.add.text(600, 345, 'Card Matching', {
+        const subtitle = this.add.text(600, 345, 'Emoji Matching', {
             fontFamily: 'Arial', fontSize: 28, color: '#ecf0f1', align: 'center'
         }).setOrigin(0.5).setAlpha(0);
 

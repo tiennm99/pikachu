@@ -1,7 +1,6 @@
 ## Credit
 
 Rule: https://www.scribd.com/document/718603193/Pikachu
-Assets: https://natomarcacini.itch.io/card-asset-pack
 
 # Phaser Next.js Template
 
