@@ -330,17 +330,17 @@ export class PikachuGame extends Scene
         this.clearPathLines();
         if (!path || path.length < 2) return;
 
-        for (let i = 0; i < path.length - 1; i++) {
-            const p1 = this.matrixToScreen(path[i].row, path[i].col);
-            const p2 = this.matrixToScreen(path[i + 1].row, path[i + 1].col);
-            const line = this.add.line(0, 0, p1.x, p1.y, p2.x, p2.y, color)
-                .setLineWidth(3).setDepth(5).setAlpha(0);
-            this.tweens.add({
-                targets: line, alpha: 0.9,
-                duration: 150, delay: i * 50
-            });
-            this.pathLines.push(line);
+        const gfx = this.add.graphics().setDepth(5).setAlpha(0);
+        gfx.lineStyle(3, color, 1);
+        const p0 = this.matrixToScreen(path[0].row, path[0].col);
+        gfx.moveTo(p0.x, p0.y);
+        for (let i = 1; i < path.length; i++) {
+            const p = this.matrixToScreen(path[i].row, path[i].col);
+            gfx.lineTo(p.x, p.y);
         }
+        gfx.strokePath();
+        this.tweens.add({ targets: gfx, alpha: 0.9, duration: 150 });
+        this.pathLines.push(gfx);
     }
 
     checkGameComplete()
