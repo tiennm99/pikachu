@@ -2,52 +2,73 @@ import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 import { PikachuGameLogic } from '../logic/PikachuGameLogic';
 
+const BOARD_WIDTH = 20;
+const BOARD_HEIGHT = 8;
+const CARD_W = 50;
+const CARD_H = 75;
+const BOARD_X = 600;
+const BOARD_Y = 180;
+
+const CARD_BG = 0xfaf8ef;
+const CARD_BORDER = 0xd5ceb8;
+const CARD_HOVER_BG = 0xe0e8f0;
+const CARD_SELECT_BG = 0xc8f7c5;
+const CARD_MISMATCH_BG = 0xf5b7b1;
+
+const SUIT_INFO = {
+    S: { symbol: '♠', color: '#2c3e50' },
+    C: { symbol: '♣', color: '#27ae60' },
+    D: { symbol: '♦', color: '#e74c3c' },
+    H: { symbol: '♥', color: '#e74c3c' }
+};
+
+const CARD_TYPES = [
+    '2S', '3S', '4S', '5S', '6S', '7S', '8S', '9S',
+    '2C', '3C', '4C', '5C', '6C', '7C', '8C', '9C',
+    '2D', '3D', '4D', '5D', '6D', '7D', '8D', '9D'
+];
+
 export class PikachuGame extends Scene
 {
     constructor ()
     {
         super('PikachuGame');
         this.board = [];
-        this.boardWidth = 20;
-        this.boardHeight = 8;
-        // Add border padding - actual matrix is bigger
-        this.matrixWidth = this.boardWidth + 2;
-        this.matrixHeight = this.boardHeight + 2;
-        this.cardWidth = 50;
-        this.cardHeight = 75;
+        this.matrixWidth = BOARD_WIDTH + 2;
+        this.matrixHeight = BOARD_HEIGHT + 2;
         this.selectedCards = [];
         this.gameStarted = false;
         this.debugLines = [];
         this.debugMode = false;
-        this.logic = new PikachuGameLogic(this.boardWidth, this.boardHeight);
+        this.moves = 0;
+        this.logic = new PikachuGameLogic(BOARD_WIDTH, BOARD_HEIGHT);
     }
 
     create ()
     {
-        this.camera = this.cameras.main;
-        this.camera.setBackgroundColor(0x2c3e50);
+        this.cameras.main.setBackgroundColor(0x16213e);
+        this.cameras.main.fadeIn(400);
 
-        this.background = this.add.image(600, 450, 'background');
-        this.background.setDisplaySize(1200, 900);
-        this.background.setAlpha(0.3);
+        this.add.image(BOARD_X, 450, 'background')
+            .setDisplaySize(1200, 900).setAlpha(0.12);
 
-        // Title
-        this.add.text(600, 50, 'Pikachu Card Matching Game', {
-            fontFamily: 'Arial Black', fontSize: 32, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 4,
+        this.add.text(BOARD_X, 50, 'Pikachu Card Matching', {
+            fontFamily: 'Arial Black', fontSize: 28, color: '#f1c40f',
+            stroke: '#1a1a2e', strokeThickness: 4,
             align: 'center'
         }).setOrigin(0.5);
 
-        // Instructions
-        this.add.text(600, 100, 'Match pairs of identical cards using I, L, U, or Z patterns', {
-            fontFamily: 'Arial', fontSize: 16, color: '#ecf0f1',
+        this.add.text(BOARD_X, 90, 'Match identical cards using I, L, U, or Z patterns', {
+            fontFamily: 'Arial', fontSize: 14, color: '#7f8c8d',
             align: 'center'
         }).setOrigin(0.5);
 
-        // Game buttons
+        this.movesText = this.add.text(BOARD_X, 130, 'Moves: 0', {
+            fontFamily: 'Arial', fontSize: 18, color: '#ecf0f1',
+            align: 'center'
+        }).setOrigin(0.5);
+
         this.createButtons();
-
-        // Initialize game board
         this.initializeBoard();
 
         EventBus.emit('current-scene-ready', this);
@@ -55,106 +76,68 @@ export class PikachuGame extends Scene
 
     createButtons()
     {
-        // New Game button
-        const newGameBtn = this.add.rectangle(200, 820, 120, 40, 0x3498db)
-            .setInteractive()
-            .on('pointerdown', () => this.startNewGame())
-            .on('pointerover', () => newGameBtn.setFillStyle(0x2980b9))
-            .on('pointerout', () => newGameBtn.setFillStyle(0x3498db));
+        const btnY = 830;
+        const btnStyle = { fontFamily: 'Arial', fontSize: 15, color: '#ffffff' };
 
-        this.add.text(200, 820, 'New Game', {
-            fontFamily: 'Arial', fontSize: 16, color: '#ffffff'
-        }).setOrigin(0.5);
+        this.createButton(180, btnY, 'New Game', 0x3498db, 0x2980b9, () => this.startNewGame(), btnStyle);
+        this.createButton(340, btnY, 'Hint', 0xe67e22, 0xd35400, () => this.showHint(), btnStyle);
 
-        // Hint button
-        const hintBtn = this.add.rectangle(400, 820, 120, 40, 0xe74c3c)
-            .setInteractive()
-            .on('pointerdown', () => this.showHint())
-            .on('pointerover', () => hintBtn.setFillStyle(0xc0392b))
-            .on('pointerout', () => hintBtn.setFillStyle(0xe74c3c));
+        const debugBtnData = this.createButton(500, btnY, 'Debug: OFF', 0x8e44ad, 0x7d3c98, () => this.toggleDebugMode(), btnStyle);
+        this.debugBtn = debugBtnData.bg;
+        this.debugText = debugBtnData.text;
 
-        this.add.text(400, 820, 'Hint', {
-            fontFamily: 'Arial', fontSize: 16, color: '#ffffff'
-        }).setOrigin(0.5);
+        this.createButton(900, btnY, 'Main Menu', 0x636e72, 0x515a5e, () => {
+            this.cameras.main.fadeOut(300, 0, 0, 0);
+            this.time.delayedCall(300, () => this.scene.start('MainMenu'));
+        }, btnStyle);
+    }
 
-        // Debug toggle button
-        this.debugBtn = this.add.rectangle(600, 820, 120, 40, 0x9b59b6)
-            .setInteractive()
-            .on('pointerdown', () => this.toggleDebugMode())
-            .on('pointerover', () => this.debugBtn.setFillStyle(0x8e44ad))
-            .on('pointerout', () => this.debugBtn.setFillStyle(0x9b59b6));
+    createButton(x, y, label, color, hoverColor, callback, textStyle)
+    {
+        const bg = this.add.rectangle(x, y, 130, 38, color)
+            .setInteractive({ useHandCursor: true });
+        const text = this.add.text(x, y, label, textStyle).setOrigin(0.5);
 
-        this.debugText = this.add.text(600, 820, 'Debug: OFF', {
-            fontFamily: 'Arial', fontSize: 16, color: '#ffffff'
-        }).setOrigin(0.5);
+        bg.on('pointerover', () => {
+            bg.setFillStyle(hoverColor);
+            this.tweens.add({ targets: [bg, text], scaleX: 1.05, scaleY: 1.05, duration: 100 });
+        });
+        bg.on('pointerout', () => {
+            bg.setFillStyle(color);
+            this.tweens.add({ targets: [bg, text], scaleX: 1, scaleY: 1, duration: 100 });
+        });
+        bg.on('pointerdown', () => {
+            this.tweens.add({ targets: [bg, text], scaleX: 0.95, scaleY: 0.95, duration: 60, yoyo: true });
+            callback();
+        });
 
-        // Back to Menu button
-        const backBtn = this.add.rectangle(1000, 820, 120, 40, 0x95a5a6)
-            .setInteractive()
-            .on('pointerdown', () => this.scene.start('MainMenu'))
-            .on('pointerover', () => backBtn.setFillStyle(0x7f8c8d))
-            .on('pointerout', () => backBtn.setFillStyle(0x95a5a6));
-
-        this.add.text(1000, 820, 'Main Menu', {
-            fontFamily: 'Arial', fontSize: 16, color: '#ffffff'
-        }).setOrigin(0.5);
+        return { bg, text };
     }
 
     initializeBoard()
     {
-        // Clear existing board
-        if (this.cardGroup) {
-            this.cardGroup.destroy();
-        }
-
+        if (this.cardGroup) this.cardGroup.destroy(true);
         this.cardGroup = this.add.group();
         this.board = [];
 
-        // Generate card pairs for the board
-        const totalCells = this.boardWidth * this.boardHeight;
-        const cardTypes = ['2S', '3S', '4S', '5S', '6S', '7S', '8S', '9S',
-                          '2C', '3C', '4C', '5C', '6C', '7C', '8C', '9C',
-                          '2D', '3D', '4D', '5D', '6D', '7D', '8D', '9D'];
-
-        // Create pairs of cards
+        const totalCells = BOARD_WIDTH * BOARD_HEIGHT;
         const cards = [];
-        const pairsNeeded = totalCells / 2;
-
-        for (let i = 0; i < pairsNeeded; i++) {
-            const cardType = cardTypes[i % cardTypes.length];
-            cards.push(cardType, cardType);
+        for (let i = 0; i < totalCells / 2; i++) {
+            const type = CARD_TYPES[i % CARD_TYPES.length];
+            cards.push(type, type);
         }
-
-        // Shuffle the cards
         this.shuffleArray(cards);
 
-        // Create 2D board with border padding
         for (let row = 0; row < this.matrixHeight; row++) {
             this.board[row] = [];
             for (let col = 0; col < this.matrixWidth; col++) {
-                // Border cells are always empty (0)
-                if (row === 0 || row === this.matrixHeight - 1 || col === 0 || col === this.matrixWidth - 1) {
-                    this.board[row][col] = {
-                        type: 0,
-                        visible: false,
-                        row: row,
-                        col: col,
-                        sprite: null
-                    };
+                const isBorder = row === 0 || row === this.matrixHeight - 1 ||
+                                 col === 0 || col === this.matrixWidth - 1;
+                if (isBorder) {
+                    this.board[row][col] = { type: 0, visible: false, row, col, sprite: null };
                 } else {
-                    // Game board cells (1-indexed in matrix)
-                    const gameRow = row - 1;
-                    const gameCol = col - 1;
-                    const cardIndex = gameRow * this.boardWidth + gameCol;
-                    const cardType = cards[cardIndex];
-
-                    this.board[row][col] = {
-                        type: cardType,
-                        visible: true,
-                        row: row,
-                        col: col,
-                        sprite: null
-                    };
+                    const idx = (row - 1) * BOARD_WIDTH + (col - 1);
+                    this.board[row][col] = { type: cards[idx], visible: true, row, col, sprite: null, cardBg: null };
                 }
             }
         }
@@ -166,52 +149,94 @@ export class PikachuGame extends Scene
 
     renderBoard()
     {
-        const startX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2;
-        const startY = 180;
+        const startX = BOARD_X - (BOARD_WIDTH * CARD_W) / 2 + CARD_W / 2;
 
-        // Only render the actual game board (skip border)
         for (let row = 1; row < this.matrixHeight - 1; row++) {
             for (let col = 1; col < this.matrixWidth - 1; col++) {
                 const cell = this.board[row][col];
-                if (cell.visible) {
-                    // Convert matrix coordinates to visual coordinates
-                    const gameRow = row - 1;
-                    const gameCol = col - 1;
-                    const x = startX + gameCol * this.cardWidth;
-                    const y = startY + gameRow * this.cardHeight;
+                if (!cell.visible) continue;
 
-                    const cardSprite = this.add.image(x, y, cell.type)
-                        .setDisplaySize(this.cardWidth - 5, this.cardHeight - 5)
-                        .setInteractive()
-                        .on('pointerdown', () => this.selectCard(row, col));
+                const x = startX + (col - 1) * CARD_W;
+                const y = BOARD_Y + (row - 1) * CARD_H;
 
-                    cell.sprite = cardSprite;
-                    this.cardGroup.add(cardSprite);
-                }
+                // Parse card type: e.g. '2S' → value='2', suit='S'
+                const suit = cell.type.slice(-1);
+                const value = cell.type.slice(0, -1);
+                const info = SUIT_INFO[suit];
+
+                // Card container: background + value + suit symbol
+                const bg = this.add.rectangle(0, 0, CARD_W - 6, CARD_H - 6, CARD_BG)
+                    .setStrokeStyle(1, CARD_BORDER);
+
+                const valueText = this.add.text(0, -14, value, {
+                    fontFamily: 'Arial Black', fontSize: 15, color: info.color,
+                    align: 'center'
+                }).setOrigin(0.5);
+
+                const suitText = this.add.text(0, 12, info.symbol, {
+                    fontSize: 22, color: info.color,
+                    align: 'center'
+                }).setOrigin(0.5);
+
+                const container = this.add.container(x, y, [bg, valueText, suitText]);
+                container.setSize(CARD_W - 6, CARD_H - 6);
+                container.setInteractive({ useHandCursor: true });
+
+                cell.sprite = container;
+                cell.cardBg = bg;
+                this.cardGroup.add(container);
+
+                // Hover effect
+                container.on('pointerover', () => {
+                    if (!this.isSelected(row, col) && cell.visible) {
+                        bg.setFillStyle(CARD_HOVER_BG);
+                        this.tweens.add({
+                            targets: container, scaleX: 1.08, scaleY: 1.08,
+                            duration: 100, ease: 'Power2'
+                        });
+                    }
+                });
+                container.on('pointerout', () => {
+                    if (!this.isSelected(row, col) && cell.visible) {
+                        bg.setFillStyle(CARD_BG);
+                        this.tweens.add({
+                            targets: container, scaleX: 1, scaleY: 1,
+                            duration: 100, ease: 'Power2'
+                        });
+                    }
+                });
+                container.on('pointerdown', () => this.selectCard(row, col));
             }
         }
+    }
+
+    isSelected(row, col)
+    {
+        return this.selectedCards.some(s => s.row === row && s.col === col);
     }
 
     selectCard(row, col)
     {
         if (!this.gameStarted) return;
-
         const cell = this.board[row][col];
-        if (!cell.visible) return;
+        if (!cell.visible || this.isSelected(row, col)) return;
 
-        // Check if already selected
-        if (this.selectedCards.some(selected => selected.row === row && selected.col === col)) {
-            return;
-        }
+        // Selection feedback: green card bg + scale pulse
+        cell.cardBg.setFillStyle(CARD_SELECT_BG);
+        this.tweens.add({
+            targets: cell.sprite,
+            scaleX: 1.15, scaleY: 1.15,
+            duration: 120, ease: 'Power2',
+            yoyo: true,
+            onComplete: () => { if (cell.sprite) cell.sprite.setScale(1.05); }
+        });
 
-        // Add selection visual effect
-        cell.sprite.setTint(0x00ff00);
-        this.selectedCards.push({row, col});
+        this.selectedCards.push({ row, col });
 
         if (this.selectedCards.length === 2) {
-            this.time.delayedCall(300, () => {
-                this.checkMatch();
-            });
+            this.moves++;
+            this.movesText.setText(`Moves: ${this.moves}`);
+            this.time.delayedCall(250, () => this.checkMatch());
         }
     }
 
@@ -221,37 +246,39 @@ export class PikachuGame extends Scene
         const firstCell = this.board[first.row][first.col];
         const secondCell = this.board[second.row][second.col];
 
-        // Check if cards are of the same type
         if (firstCell.type === secondCell.type) {
-            // Check if there's a valid path between them
             const pathResult = this.logic.findPath(first, second);
             if (pathResult.valid) {
-                // Valid match - show green line and remove cards
-                if (this.debugMode) {
-                    this.drawDebugPath(pathResult.path, 0x00ff00);
-                }
-                this.time.delayedCall(this.debugMode ? 1000 : 0, () => {
+                if (this.debugMode) this.drawDebugPath(pathResult.path, 0x00ff00);
+                this.time.delayedCall(this.debugMode ? 800 : 0, () => {
                     this.removeCards(first, second);
                     this.checkGameComplete();
                 });
-            } else {
-                // Invalid path - show red line and clear selection
-                if (this.debugMode) {
-                    this.drawDebugLine(first, second, 0xff0000);
-                }
-                this.time.delayedCall(this.debugMode ? 1000 : 0, () => {
-                    this.clearSelection();
-                });
+                return;
             }
-        } else {
-            // Different cards - show red line and clear selection
-            if (this.debugMode) {
-                this.drawDebugLine(first, second, 0xff0000);
-            }
-            this.time.delayedCall(this.debugMode ? 1000 : 0, () => {
-                this.clearSelection();
-            });
         }
+
+        // Mismatch — red flash + shake
+        if (this.debugMode) this.drawDebugLine(first, second, 0xff0000);
+        this.showMismatch(firstCell, secondCell);
+    }
+
+    showMismatch(cell1, cell2)
+    {
+        [cell1, cell2].forEach(cell => {
+            if (!cell.sprite) return;
+            cell.cardBg.setFillStyle(CARD_MISMATCH_BG);
+            const origX = cell.sprite.x;
+            this.tweens.add({
+                targets: cell.sprite,
+                x: { from: origX - 4, to: origX + 4 },
+                duration: 50, yoyo: true, repeat: 2,
+                ease: 'Sine.easeInOut',
+                onComplete: () => { if (cell.sprite) cell.sprite.x = origX; }
+            });
+        });
+
+        this.time.delayedCall(this.debugMode ? 800 : 400, () => this.clearSelection());
     }
 
     removeCards(first, second)
@@ -259,21 +286,25 @@ export class PikachuGame extends Scene
         const firstCell = this.board[first.row][first.col];
         const secondCell = this.board[second.row][second.col];
 
-        // Add removal animation
+        // Match animation: flash white bg, scale up, fade out
+        [firstCell, secondCell].forEach(c => {
+            if (c.cardBg) c.cardBg.setFillStyle(0xffffff).setStrokeStyle(1, 0xaaffaa);
+        });
+
         this.tweens.add({
             targets: [firstCell.sprite, secondCell.sprite],
-            scale: 0,
+            scaleX: 1.3, scaleY: 1.3,
             alpha: 0,
             duration: 300,
+            ease: 'Power2',
             onComplete: () => {
-                firstCell.sprite.destroy();
-                secondCell.sprite.destroy();
-                firstCell.visible = false;
-                secondCell.visible = false;
-                firstCell.type = 0;
-                secondCell.type = 0;
-                firstCell.sprite = null;
-                secondCell.sprite = null;
+                [firstCell, secondCell].forEach(cell => {
+                    if (cell.sprite) cell.sprite.destroy();
+                    cell.visible = false;
+                    cell.type = 0;
+                    cell.sprite = null;
+                    cell.cardBg = null;
+                });
             }
         });
 
@@ -282,10 +313,13 @@ export class PikachuGame extends Scene
 
     clearSelection()
     {
-        this.selectedCards.forEach(selected => {
-            const cell = this.board[selected.row][selected.col];
+        this.selectedCards.forEach(({ row, col }) => {
+            const cell = this.board[row][col];
             if (cell.sprite) {
-                cell.sprite.clearTint();
+                cell.cardBg.setFillStyle(CARD_BG);
+                this.tweens.add({
+                    targets: cell.sprite, scaleX: 1, scaleY: 1, duration: 150
+                });
             }
         });
         this.selectedCards = [];
@@ -294,90 +328,108 @@ export class PikachuGame extends Scene
 
     clearDebugLines()
     {
-        this.debugLines.forEach(line => {
-            if (line && line.destroy) {
-                line.destroy();
-            }
-        });
+        this.debugLines.forEach(line => { if (line?.destroy) line.destroy(); });
         this.debugLines = [];
+    }
+
+    matrixToScreen(row, col)
+    {
+        const baseX = BOARD_X - (BOARD_WIDTH * CARD_W) / 2 + CARD_W / 2;
+        return {
+            x: baseX + (col - 1) * CARD_W,
+            y: BOARD_Y + (row - 1) * CARD_H
+        };
     }
 
     drawDebugLine(start, end, color)
     {
         this.clearDebugLines();
-        
-        // Convert matrix coordinates to visual coordinates
-        const startGameCol = start.col - 1;
-        const startGameRow = start.row - 1;
-        const endGameCol = end.col - 1;
-        const endGameRow = end.row - 1;
-        
-        const startX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2 + startGameCol * this.cardWidth;
-        const startY = 180 + startGameRow * this.cardHeight;
-        const endX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2 + endGameCol * this.cardWidth;
-        const endY = 180 + endGameRow * this.cardHeight;
-
-        const line = this.add.line(0, 0, startX, startY, endX, endY, color);
-        line.setLineWidth(3);
+        const s = this.matrixToScreen(start.row, start.col);
+        const e = this.matrixToScreen(end.row, end.col);
+        const line = this.add.line(0, 0, s.x, s.y, e.x, e.y, color).setLineWidth(3).setDepth(5);
         this.debugLines.push(line);
     }
 
     drawDebugPath(path, color)
     {
         this.clearDebugLines();
-        
         if (!path || path.length < 2) return;
 
-        const baseX = 600 - (this.boardWidth * this.cardWidth) / 2 + this.cardWidth / 2;
-        const baseY = 180;
-
         for (let i = 0; i < path.length - 1; i++) {
-            const point1 = path[i];
-            const point2 = path[i + 1];
-            
-            // Convert matrix coordinates to visual coordinates
-            // Handle border points that might be outside the visible area
-            const gameCol1 = point1.col - 1;
-            const gameRow1 = point1.row - 1;
-            const gameCol2 = point2.col - 1;
-            const gameRow2 = point2.row - 1;
-            
-            const x1 = baseX + gameCol1 * this.cardWidth;
-            const y1 = baseY + gameRow1 * this.cardHeight;
-            const x2 = baseX + gameCol2 * this.cardWidth;
-            const y2 = baseY + gameRow2 * this.cardHeight;
-
-            const line = this.add.line(0, 0, x1, y1, x2, y2, color);
-            line.setLineWidth(3);
+            const p1 = this.matrixToScreen(path[i].row, path[i].col);
+            const p2 = this.matrixToScreen(path[i + 1].row, path[i + 1].col);
+            const line = this.add.line(0, 0, p1.x, p1.y, p2.x, p2.y, color).setLineWidth(3).setDepth(5);
             this.debugLines.push(line);
         }
     }
 
     checkGameComplete()
     {
-        let remainingCards = 0;
-        // Only check the actual game board (skip border)
+        let remaining = 0;
         for (let row = 1; row < this.matrixHeight - 1; row++) {
             for (let col = 1; col < this.matrixWidth - 1; col++) {
-                if (this.board[row][col].visible) remainingCards++;
+                if (this.board[row][col].visible) remaining++;
             }
         }
 
-        if (remainingCards === 0) {
+        if (remaining === 0) {
             this.gameStarted = false;
-            this.time.delayedCall(1000, () => {
-                this.add.text(600, 450, 'Congratulations!\nYou completed the game!', {
-                    fontFamily: 'Arial Black', fontSize: 32, color: '#f1c40f',
-                    stroke: '#000000', strokeThickness: 4,
-                    align: 'center'
-                }).setOrigin(0.5);
-            });
+            this.time.delayedCall(600, () => this.showCompletionScreen());
         }
+    }
+
+    showCompletionScreen()
+    {
+        const overlay = this.add.rectangle(BOARD_X, 450, 1200, 900, 0x000000, 0).setDepth(10);
+        this.tweens.add({ targets: overlay, fillAlpha: 0.6, duration: 400 });
+
+        const congrats = this.add.text(BOARD_X, 380, 'Congratulations!', {
+            fontFamily: 'Arial Black', fontSize: 48, color: '#f1c40f',
+            stroke: '#1a1a2e', strokeThickness: 6,
+            align: 'center'
+        }).setOrigin(0.5).setAlpha(0).setScale(0.5).setDepth(11);
+
+        this.tweens.add({
+            targets: congrats, alpha: 1, scale: 1,
+            duration: 600, delay: 200, ease: 'Back.easeOut'
+        });
+
+        const stats = this.add.text(BOARD_X, 450, `Completed in ${this.moves} moves`, {
+            fontFamily: 'Arial', fontSize: 22, color: '#ecf0f1',
+            align: 'center'
+        }).setOrigin(0.5).setAlpha(0).setDepth(11);
+
+        this.tweens.add({ targets: stats, alpha: 1, duration: 400, delay: 600 });
+
+        const btn = this.add.rectangle(BOARD_X, 530, 200, 50, 0x27ae60)
+            .setInteractive({ useHandCursor: true }).setAlpha(0).setDepth(11);
+        const btnText = this.add.text(BOARD_X, 530, 'Play Again', {
+            fontFamily: 'Arial Black', fontSize: 20, color: '#ffffff'
+        }).setOrigin(0.5).setAlpha(0).setDepth(11);
+
+        this.tweens.add({ targets: [btn, btnText], alpha: 1, duration: 400, delay: 900 });
+
+        btn.on('pointerover', () => {
+            btn.setFillStyle(0x2ecc71);
+            this.tweens.add({ targets: [btn, btnText], scaleX: 1.06, scaleY: 1.06, duration: 100 });
+        });
+        btn.on('pointerout', () => {
+            btn.setFillStyle(0x27ae60);
+            this.tweens.add({ targets: [btn, btnText], scaleX: 1, scaleY: 1, duration: 100 });
+        });
+        btn.on('pointerdown', () => {
+            overlay.destroy(); congrats.destroy(); stats.destroy();
+            btn.destroy(); btnText.destroy();
+            this.startNewGame();
+        });
     }
 
     startNewGame()
     {
         this.selectedCards = [];
+        this.moves = 0;
+        this.movesText.setText('Moves: 0');
+        this.clearDebugLines();
         this.initializeBoard();
     }
 
@@ -385,40 +437,36 @@ export class PikachuGame extends Scene
     {
         this.debugMode = !this.debugMode;
         this.debugText.setText(this.debugMode ? 'Debug: ON' : 'Debug: OFF');
-        this.debugBtn.setFillStyle(this.debugMode ? 0x27ae60 : 0x9b59b6);
-        
-        // Clear any existing debug lines when toggling off
-        if (!this.debugMode) {
-            this.clearDebugLines();
-        }
+        this.debugBtn.setFillStyle(this.debugMode ? 0x27ae60 : 0x8e44ad);
+        if (!this.debugMode) this.clearDebugLines();
     }
 
     showHint()
     {
-        // Find a valid pair and highlight them (only check game board)
-        for (let row1 = 1; row1 < this.matrixHeight - 1; row1++) {
-            for (let col1 = 1; col1 < this.matrixWidth - 1; col1++) {
-                if (!this.board[row1][col1].visible) continue;
+        for (let r1 = 1; r1 < this.matrixHeight - 1; r1++) {
+            for (let c1 = 1; c1 < this.matrixWidth - 1; c1++) {
+                if (!this.board[r1][c1].visible) continue;
+                for (let r2 = 1; r2 < this.matrixHeight - 1; r2++) {
+                    for (let c2 = 1; c2 < this.matrixWidth - 1; c2++) {
+                        if (!this.board[r2][c2].visible) continue;
+                        if (r1 === r2 && c1 === c2) continue;
+                        if (this.board[r1][c1].type !== this.board[r2][c2].type) continue;
 
-                for (let row2 = 1; row2 < this.matrixHeight - 1; row2++) {
-                    for (let col2 = 1; col2 < this.matrixWidth - 1; col2++) {
-                        if (!this.board[row2][col2].visible) continue;
-                        if (row1 === row2 && col1 === col2) continue;
-
-                        if (this.board[row1][col1].type === this.board[row2][col2].type &&
-                            this.logic.hasValidPath({row: row1, col: col1}, {row: row2, col: col2})) {
-
-                            // Highlight the hint pair
-                            this.board[row1][col1].sprite.setTint(0xffff00);
-                            this.board[row2][col2].sprite.setTint(0xffff00);
-
-                            this.time.delayedCall(2000, () => {
-                                if (this.board[row1][col1].sprite) {
-                                    this.board[row1][col1].sprite.clearTint();
-                                }
-                                if (this.board[row2][col2].sprite) {
-                                    this.board[row2][col2].sprite.clearTint();
-                                }
+                        if (this.logic.hasValidPath({ row: r1, col: c1 }, { row: r2, col: c2 })) {
+                            const cells = [this.board[r1][c1], this.board[r2][c2]];
+                            cells.forEach(cell => {
+                                if (!cell.sprite) return;
+                                cell.cardBg.setFillStyle(0xfff3cd);
+                                this.tweens.add({
+                                    targets: cell.sprite,
+                                    scaleX: 1.12, scaleY: 1.12,
+                                    duration: 400, yoyo: true, repeat: 1,
+                                    ease: 'Sine.easeInOut',
+                                    onComplete: () => {
+                                        if (cell.sprite) cell.sprite.setScale(1);
+                                        if (cell.cardBg) cell.cardBg.setFillStyle(CARD_BG);
+                                    }
+                                });
                             });
                             return;
                         }
