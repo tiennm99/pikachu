@@ -3,8 +3,8 @@ import { Scene } from 'phaser';
 import { PikachuGameLogic } from '../logic/PikachuGameLogic';
 import {
     BOARD_WIDTH, BOARD_HEIGHT, CARD_W, CARD_H, BOARD_X, BOARD_Y,
-    GAME_TIME, COMBO_WINDOW, CARD_BG, CARD_BORDER, CARD_HOVER_BG,
-    CARD_SELECT_BORDER, CARD_MISMATCH_BG, CARD_TYPES
+    GAME_TIME, COMBO_WINDOW, CARD_TYPES, GRID_RADIUS,
+    generateCardTextures
 } from './pikachu-game-config.js';
 import { drawPath, clearPathLines, matrixToScreen } from './pikachu-path-renderer.js';
 import {
@@ -35,6 +35,9 @@ export class PikachuGame extends Scene {
         this.cameras.main.setBackgroundColor(0x0d0d2b);
         this.cameras.main.fadeIn(400);
 
+        // Generate rounded card textures once
+        generateCardTextures(this);
+
         this.add.image(BOARD_X, 450, 'background')
             .setDisplaySize(1200, 900).setAlpha(0.08);
 
@@ -45,13 +48,16 @@ export class PikachuGame extends Scene {
 
         createStatsBar(this);
 
-        // Grid border
+        // Rounded grid border
         const gridW = BOARD_WIDTH * CARD_W + 16;
         const gridH = BOARD_HEIGHT * CARD_H + 16;
         const gridX = BOARD_X - gridW / 2;
         const gridY = BOARD_Y - CARD_H / 2 - 8;
-        this.add.rectangle(gridX + gridW / 2, gridY + gridH / 2, gridW, gridH, 0x000000, 0.35)
-            .setStrokeStyle(1, 0xffd700, 0.25);
+        const gridGfx = this.add.graphics();
+        gridGfx.fillStyle(0x000000, 0.35);
+        gridGfx.fillRoundedRect(gridX, gridY, gridW, gridH, GRID_RADIUS);
+        gridGfx.lineStyle(1, 0xffd700, 0.25);
+        gridGfx.strokeRoundedRect(gridX, gridY, gridW, gridH, GRID_RADIUS);
 
         createAllButtons(this);
         this.initializeBoard();
@@ -105,8 +111,8 @@ export class PikachuGame extends Scene {
                 const x = startX + (col - 1) * CARD_W;
                 const y = BOARD_Y + (row - 1) * CARD_H;
 
-                const bg = this.add.rectangle(0, 0, CARD_W - 4, CARD_H - 4, CARD_BG)
-                    .setStrokeStyle(1, CARD_BORDER);
+                // Rounded card background using pre-generated texture
+                const bg = this.add.image(0, 0, 'card-normal');
                 const emoji = this.add.text(0, 0, cell.type, {
                     fontSize: 28, padding: { top: 4, bottom: 4, left: 2, right: 2 }
                 }).setOrigin(0.5);
@@ -121,15 +127,13 @@ export class PikachuGame extends Scene {
 
                 container.on('pointerover', () => {
                     if (!this.isSelected(row, col) && cell.visible) {
-                        bg.setFillStyle(CARD_HOVER_BG);
-                        bg.setStrokeStyle(1, 0x555588);
+                        bg.setTexture('card-hover');
                         this.tweens.add({ targets: container, scaleX: 1.06, scaleY: 1.06, duration: 100, ease: 'Power2' });
                     }
                 });
                 container.on('pointerout', () => {
                     if (!this.isSelected(row, col) && cell.visible) {
-                        bg.setFillStyle(CARD_BG);
-                        bg.setStrokeStyle(1, CARD_BORDER);
+                        bg.setTexture('card-normal');
                         this.tweens.add({ targets: container, scaleX: 1, scaleY: 1, duration: 100, ease: 'Power2' });
                     }
                 });
@@ -149,8 +153,7 @@ export class PikachuGame extends Scene {
         const cell = this.board[row][col];
         if (!cell.visible || this.isSelected(row, col)) return;
 
-        cell.cardBg.setStrokeStyle(2, CARD_SELECT_BORDER);
-        cell.cardBg.setFillStyle(0x2a2a3e);
+        cell.cardBg.setTexture('card-selected');
         this.tweens.add({ targets: cell.sprite, scaleX: 1.1, scaleY: 1.1, duration: 120, ease: 'Back.easeOut' });
 
         this.selectedCards.push({ row, col });
@@ -204,7 +207,7 @@ export class PikachuGame extends Scene {
     showMismatch(cell1, cell2) {
         [cell1, cell2].forEach(cell => {
             if (!cell.sprite) return;
-            cell.cardBg.setFillStyle(CARD_MISMATCH_BG);
+            cell.cardBg.setTexture('card-mismatch');
             const origX = cell.sprite.x;
             this.tweens.add({
                 targets: cell.sprite,
@@ -240,9 +243,8 @@ export class PikachuGame extends Scene {
     clearSelection() {
         this.selectedCards.forEach(({ row, col }) => {
             const cell = this.board[row][col];
-            if (cell.sprite) {
-                cell.cardBg.setFillStyle(CARD_BG);
-                cell.cardBg.setStrokeStyle(1, CARD_BORDER);
+            if (cell.sprite && cell.cardBg) {
+                cell.cardBg.setTexture('card-normal');
                 this.tweens.add({ targets: cell.sprite, scaleX: 1, scaleY: 1, duration: 150 });
             }
         });

@@ -2,30 +2,48 @@
 
 import {
     BOARD_X, BOARD_WIDTH, CARD_W, CARD_H, CARD_BG, CARD_BORDER,
-    GAME_TIME
+    GAME_TIME, BTN_RADIUS
 } from './pikachu-game-config.js';
 import { clearPathLines } from './pikachu-path-renderer.js';
 
-// ===== BUTTONS =====
+// ===== ROUNDED BUTTON HELPER =====
+
+function drawBtnShape(gfx, w, h, radius, color) {
+    gfx.clear();
+    gfx.fillStyle(color, 1);
+    gfx.fillRoundedRect(-w / 2, -h / 2, w, h, radius);
+}
 
 export function createButton(scene, x, y, label, color, hoverColor, callback, textStyle) {
-    const bg = scene.add.rectangle(x, y, 130, 38, color)
-        .setInteractive({ useHandCursor: true });
+    const w = 130, h = 38, r = BTN_RADIUS;
+
+    const gfx = scene.add.graphics();
+    gfx.setPosition(x, y);
+    drawBtnShape(gfx, w, h, r, color);
+
+    // Hit area for interaction
+    const hitArea = new Phaser.Geom.Rectangle(-w / 2, -h / 2, w, h);
+    gfx.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+    gfx.input.cursor = 'pointer';
+
     const text = scene.add.text(x, y, label, textStyle).setOrigin(0.5);
 
-    bg.on('pointerover', () => {
-        bg.setFillStyle(hoverColor);
-        scene.tweens.add({ targets: [bg, text], scaleX: 1.05, scaleY: 1.05, duration: 100 });
+    gfx.on('pointerover', () => {
+        drawBtnShape(gfx, w, h, r, hoverColor);
+        scene.tweens.add({ targets: [gfx, text], scaleX: 1.05, scaleY: 1.05, duration: 100 });
     });
-    bg.on('pointerout', () => {
-        bg.setFillStyle(color);
-        scene.tweens.add({ targets: [bg, text], scaleX: 1, scaleY: 1, duration: 100 });
+    gfx.on('pointerout', () => {
+        drawBtnShape(gfx, w, h, r, color);
+        scene.tweens.add({ targets: [gfx, text], scaleX: 1, scaleY: 1, duration: 100 });
     });
-    bg.on('pointerdown', () => {
-        scene.tweens.add({ targets: [bg, text], scaleX: 0.95, scaleY: 0.95, duration: 60, yoyo: true });
+    gfx.on('pointerdown', () => {
+        scene.tweens.add({ targets: [gfx, text], scaleX: 0.95, scaleY: 0.95, duration: 60, yoyo: true });
         callback();
     });
-    return { bg, text };
+
+    // setColor allows external color changes (e.g. debug toggle)
+    const setColor = (c) => drawBtnShape(gfx, w, h, r, c);
+    return { bg: gfx, text, setColor };
 }
 
 export function createAllButtons(scene) {
@@ -36,7 +54,7 @@ export function createAllButtons(scene) {
     createButton(scene, 340, btnY, 'Hint', 0x3498db, 0x2980b9, () => showHint(scene), btnStyle);
 
     const debugBtnData = createButton(scene, 500, btnY, 'Debug: OFF', 0x8e44ad, 0x7d3c98, () => toggleDebugMode(scene), btnStyle);
-    scene.debugBtn = debugBtnData.bg;
+    scene.debugBtn = debugBtnData;
     scene.debugText = debugBtnData.text;
 
     createButton(scene, 900, btnY, 'Main Menu', 0x636e72, 0x515a5e, () => {
@@ -113,25 +131,30 @@ export function showCompletionScreen(scene, won) {
 
     scene.tweens.add({ targets: stats, alpha: 1, duration: 400, delay: 600 });
 
-    const btn = scene.add.rectangle(BOARD_X, 510, 200, 50, 0xffa500)
-        .setInteractive({ useHandCursor: true }).setAlpha(0).setDepth(11);
+    // Rounded "Play Again" button
+    const bw = 200, bh = 50, br = BTN_RADIUS;
+    const btnGfx = scene.add.graphics().setPosition(BOARD_X, 510).setAlpha(0).setDepth(11);
+    drawBtnShape(btnGfx, bw, bh, br, 0xffa500);
+    btnGfx.setInteractive(new Phaser.Geom.Rectangle(-bw / 2, -bh / 2, bw, bh), Phaser.Geom.Rectangle.Contains);
+    btnGfx.input.cursor = 'pointer';
+
     const btnText = scene.add.text(BOARD_X, 510, 'Play Again', {
         fontFamily: 'Arial Black', fontSize: 20, color: '#1a1a2e'
     }).setOrigin(0.5).setAlpha(0).setDepth(11);
 
-    scene.tweens.add({ targets: [btn, btnText], alpha: 1, duration: 400, delay: 900 });
+    scene.tweens.add({ targets: [btnGfx, btnText], alpha: 1, duration: 400, delay: 900 });
 
-    btn.on('pointerover', () => {
-        btn.setFillStyle(0xffb833);
-        scene.tweens.add({ targets: [btn, btnText], scaleX: 1.06, scaleY: 1.06, duration: 100 });
+    btnGfx.on('pointerover', () => {
+        drawBtnShape(btnGfx, bw, bh, br, 0xffb833);
+        scene.tweens.add({ targets: [btnGfx, btnText], scaleX: 1.06, scaleY: 1.06, duration: 100 });
     });
-    btn.on('pointerout', () => {
-        btn.setFillStyle(0xffa500);
-        scene.tweens.add({ targets: [btn, btnText], scaleX: 1, scaleY: 1, duration: 100 });
+    btnGfx.on('pointerout', () => {
+        drawBtnShape(btnGfx, bw, bh, br, 0xffa500);
+        scene.tweens.add({ targets: [btnGfx, btnText], scaleX: 1, scaleY: 1, duration: 100 });
     });
-    btn.on('pointerdown', () => {
+    btnGfx.on('pointerdown', () => {
         overlay.destroy(); congrats.destroy(); stats.destroy();
-        btn.destroy(); btnText.destroy();
+        btnGfx.destroy(); btnText.destroy();
         scene.startNewGame();
     });
 }
@@ -181,8 +204,7 @@ export function showHint(scene) {
 function highlightHintPair(scene, cell1, cell2) {
     [cell1, cell2].forEach(cell => {
         if (!cell.sprite || !cell.cardBg) return;
-        cell.cardBg.setStrokeStyle(2, 0x00ccff);
-        cell.cardBg.setFillStyle(0x1a2a4e);
+        cell.cardBg.setTexture('card-hint');
         scene.tweens.add({
             targets: cell.sprite,
             scaleX: 1.08, scaleY: 1.08,
@@ -190,10 +212,7 @@ function highlightHintPair(scene, cell1, cell2) {
             ease: 'Sine.easeInOut',
             onComplete: () => {
                 if (cell.sprite) cell.sprite.setScale(1);
-                if (cell.cardBg) {
-                    cell.cardBg.setFillStyle(CARD_BG);
-                    cell.cardBg.setStrokeStyle(1, CARD_BORDER);
-                }
+                if (cell.cardBg) cell.cardBg.setTexture('card-normal');
             }
         });
     });
@@ -204,6 +223,6 @@ function highlightHintPair(scene, cell1, cell2) {
 export function toggleDebugMode(scene) {
     scene.debugMode = !scene.debugMode;
     scene.debugText.setText(scene.debugMode ? 'Debug: ON' : 'Debug: OFF');
-    scene.debugBtn.setFillStyle(scene.debugMode ? 0x27ae60 : 0x8e44ad);
+    scene.debugBtn.setColor(scene.debugMode ? 0x27ae60 : 0x8e44ad);
     if (!scene.debugMode) clearPathLines(scene);
 }
