@@ -288,6 +288,7 @@ export class PikachuGame extends Scene
                     cell.sprite = null;
                     cell.cardBg = null;
                 });
+                this.clearPathLines();
             }
         });
 
