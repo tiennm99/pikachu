@@ -1,6 +1,7 @@
 {
     "name": "template-nextjs",
     "version": "1.2.0",
+    "packageManager": "pnpm@11.1.1",
     "description": "A Phaser 3 Next.js project template that demonstrates Next.js with React communication and uses Vite for bundling.",
     "repository": {
         "type": "git",
@@ -45,5 +46,8 @@
     "devDependencies": {
         "jest": "^29.7.0"
     },
-    "type": "module"
+    "type": "module",
+    "pnpm": {
+        "ignoredBuiltDependencies": ["sharp"]
+    }
 }
